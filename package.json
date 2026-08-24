@@ -12,7 +12,9 @@
     "migrate": "ts-node scripts/migrate.ts",
     "cleanup-stale-uploads": "ts-node scripts/cleanup-stale-uploads.ts",
     "create-admin": "ts-node scripts/create-admin.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:frontend": "npm --prefix frontend install && npm --prefix frontend run build",
+    "build:all": "npm run build:frontend && npm run build"
   },
   "dependencies": {
     "argon2": "^0.41.1",

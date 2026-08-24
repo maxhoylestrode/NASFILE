@@ -9,6 +9,8 @@ Postgres, MinIO, invite-only JWT auth. Deployed behind Nginx Proxy Manager.
 **Session 2 — done:** folder and file metadata CRUD.
 **Session 3 — done:** resumable multipart upload/download, direct
 browser-to-MinIO.
+**Session 4 — done:** React + Tailwind frontend, served from this same
+Express server.
 - Postgres schema: `users`, `invites`, `folders`, `files` (folders/files form a
   real parent/child tree; schema in `db/migrations/001_init.sql`)
 - argon2id password hashing
@@ -51,6 +53,33 @@ in the response so a client always has a starting point. (`POST
 There's no way to create the very first user through the API (invites can
 only be created by an existing admin, and account creation only happens via
 invite acceptance) — see `npm run create-admin` below.
+
+## Frontend
+
+`frontend/` is a separate Vite + React + TypeScript + Tailwind app (no
+relation to the backend's build — its own `package.json`, its own
+`tsc`). It talks to the exact same endpoints documented below: login,
+folder/file CRUD, and the full resumable multipart upload flow with a
+real progress bar and cross-reload resume (re-select the same file after
+a crash/reload — see `docs/session-4-qa-checklist.md`).
+
+**Dev:** two processes. `npm run dev` here for the API (port 3000), and
+`npm --prefix frontend run dev` for the frontend (its own Vite dev
+server, default port 5173) — Vite proxies `/auth`, `/invites`,
+`/folders`, `/files` back to port 3000 (see `frontend/vite.config.ts`),
+so the browser only ever talks to one origin even in dev.
+
+**Production:** `npm run build:all` builds the frontend first, then the
+backend. Express serves the built frontend as static files and falls
+back to `index.html` for client-side routes (`/login`, `/accept-invite`,
+etc.) — see the bottom of `src/app.ts`. One process, one Nginx Proxy
+Manager host for the whole app. MinIO still needs its own separate
+subdomain (see "Exposing MinIO" below) since upload/download bytes
+bypass this server entirely.
+
+If `frontend/dist` doesn't exist (frontend never built), the server logs
+a warning at startup and runs API-only — nothing breaks, there's just no
+UI to serve.
 
 ## Setup
 
@@ -172,6 +201,48 @@ fallback, and the abort-on-delete path could not be exercised
 automatically. Run `scripts/smoke-test-multipart.sh` once against your
 real deployed MinIO to verify those specifically — see the script header
 for usage.
+
+### Session 4: frontend
+
+Stack: Vite, React 18, TypeScript, Tailwind v4 (CSS-based config via
+`@tailwindcss/vite`, no `tailwind.config.js` needed), React Router,
+TanStack Query, `lucide-react` for icons. No component library beyond
+that — deliberately minimal for a first pass, per your call to keep it
+"quick and simple" but on a stack worth building on.
+
+**Auth:** tokens live in `localStorage` (`frontend/src/api/tokenStore.ts`).
+The fetch wrapper (`frontend/src/api/client.ts`) auto-refreshes on a 401,
+coalescing concurrent refresh attempts into one request, and forces
+logout if the refresh token itself is dead.
+
+**Upload UI:** `frontend/src/upload/uploadManager.ts` drives the actual
+multipart flow — XHR (not `fetch`) for real upload-progress events,
+bounded concurrency (3 parts at once), per-part retry with backoff. State
+lives in `frontend/src/upload/uploadStore.ts`, a small external store
+(via `useSyncExternalStore`) persisted to `localStorage` so an in-progress
+upload survives a reload.
+
+**On resumability specifically** (the actual point of Session 3, carried
+through to the UI): a browser can't hold onto a `File` object across a
+reload — there's no getting around re-selecting the file. What resume
+actually buys you is not re-uploading bytes MinIO already has. On resume,
+the client doesn't trust its own stored progress — it calls `GET
+/files/uploads/:id`, the server asks MinIO via `ListParts`, and only the
+parts genuinely still missing get (re-)uploaded. See
+`docs/session-4-qa-checklist.md` for exactly how to test this — kill the
+tab mid-upload of something large, reopen, resume, confirm it doesn't
+restart from zero.
+
+**Not done in this pass** (flagging rather than silently skipping):
+- No drag-and-drop *move* — moving is a folder-picker modal
+  (`MoveModal.tsx`), not drag-and-drop onto folders. Drag-and-drop *is*
+  wired up for uploads (drop anywhere on the drive view).
+- No breadcrumb persistence across a hard refresh — reloading mid-navigation
+  drops you back at "My Drive". The current folder's *contents* are still
+  correct, just the path trail resets.
+- Bucket CORS defaults to `AllowedOrigins: ['*']` (set in `storage.ts`
+  from Session 3) — fine for a single-user homelab, worth tightening to
+  your actual frontend origin once this is live.
 
 ### Exposing MinIO for direct browser upload/download
 
