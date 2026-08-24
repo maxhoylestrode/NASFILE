@@ -42,6 +42,17 @@ export function createApp() {
     res.status(200).json({ status: 'ok' });
   });
 
+  // Let's Encrypt HTTP-01 validation hits this path directly. It must
+  // never fall through to the SPA catch-all below (which would hand back
+  // index.html instead of a 404/challenge token and break cert issuance).
+  // Nginx Proxy Manager is expected to intercept this path itself before
+  // it ever reaches the app — this route exists as a hard guarantee and a
+  // diagnostic: if cert requests still fail with this in place, the
+  // problem is confirmed to be on the NPM/certbot side, not here.
+  app.get('/.well-known/acme-challenge/*', (_req, res) => {
+    res.status(404).send('Not found');
+  });
+
   app.use('/auth', authRouter);
   app.use('/invites', invitesRouter);
   app.use('/folders', foldersRouter);
