@@ -3,6 +3,8 @@ import pinoHttp from 'pino-http';
 import { logger } from './logger';
 import { authRouter } from './routes/auth';
 import { invitesRouter } from './routes/invites';
+import { foldersRouter } from './routes/folders';
+import { filesRouter } from './routes/files';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler';
 
 export function createApp() {
@@ -32,6 +34,8 @@ export function createApp() {
 
   app.use('/auth', authRouter);
   app.use('/invites', invitesRouter);
+  app.use('/folders', foldersRouter);
+  app.use('/files', filesRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
