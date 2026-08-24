@@ -55,7 +55,7 @@ export function UploadPanel() {
   if (uploads.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-40 w-80 rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
+    <div className="fixed bottom-4 right-4 z-40 w-80 animate-slide-up rounded-lg border border-slate-200 bg-white shadow-lg transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800">
       <div className="border-b border-slate-100 px-3 py-2 text-sm font-medium text-slate-700 dark:border-slate-700 dark:text-slate-200">
         Uploads ({uploads.length})
       </div>

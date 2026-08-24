@@ -96,7 +96,7 @@ export function DrivePage() {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="flex h-screen bg-slate-50 transition-colors duration-200 dark:bg-slate-900">
       <Sidebar
         onNewFolder={() => setModal({ type: 'new-folder' })}
         onUploadClick={() => fileInputRef.current?.click()}
@@ -125,7 +125,7 @@ export function DrivePage() {
               </p>
             )}
 
-            <div className="rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+            <div className="animate-fade-in rounded-lg border border-slate-200 bg-white transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800">
               {isLoading && <p className="p-6 text-center text-sm text-slate-400 dark:text-slate-500">Loading…</p>}
               {error && (
                 <p className="p-6 text-center text-sm text-red-600 dark:text-red-400">Failed to load this folder.</p>
@@ -163,8 +163,8 @@ export function DrivePage() {
       </div>
 
       {dragOver && (
-        <div className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center border-4 border-dashed border-indigo-400 bg-indigo-50/70 dark:bg-indigo-950/60">
-          <p className="text-lg font-medium text-indigo-700 dark:text-indigo-300">Drop to upload</p>
+        <div className="pointer-events-none fixed inset-0 z-30 flex animate-fade-in items-center justify-center border-4 border-dashed border-indigo-400 bg-indigo-50/70 dark:bg-indigo-950/60">
+          <p className="animate-scale-in text-lg font-medium text-indigo-700 dark:text-indigo-300">Drop to upload</p>
         </div>
       )}
 

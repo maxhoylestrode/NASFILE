@@ -29,7 +29,7 @@ export function ItemRow(props: ItemRowProps) {
   const FileIconComp = !isFolder ? getFileIcon(props.item.name) : null;
 
   return (
-    <div className="group flex items-center gap-3 rounded-md px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50">
+    <div className="group flex items-center gap-3 rounded-md px-3 py-2 transition-colors duration-150 hover:bg-slate-50 dark:hover:bg-slate-700/50">
       <button
         className="flex min-w-0 flex-1 items-center gap-3 text-left"
         onClick={isFolder ? () => props.onOpen(props.item.id) : props.kind === 'file' ? props.onDownload : undefined}
@@ -54,12 +54,12 @@ export function ItemRow(props: ItemRowProps) {
         </span>
       </button>
 
-      <div className="flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100">
+      <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
         {props.kind === 'file' && props.item.status === 'complete' && (
           <button
             title="Download"
             onClick={props.onDownload}
-            className="rounded p-1.5 text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-600"
+            className="rounded p-1.5 text-slate-500 transition-colors duration-150 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-600"
           >
             <Download className="h-4 w-4" />
           </button>
@@ -69,21 +69,21 @@ export function ItemRow(props: ItemRowProps) {
             <button
               title="Rename"
               onClick={props.onRename}
-              className="rounded p-1.5 text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-600"
+              className="rounded p-1.5 text-slate-500 transition-colors duration-150 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-600"
             >
               <Pencil className="h-4 w-4" />
             </button>
             <button
               title="Move"
               onClick={props.onMove}
-              className="rounded p-1.5 text-slate-500 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-600"
+              className="rounded p-1.5 text-slate-500 transition-colors duration-150 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-600"
             >
               <FolderInput className="h-4 w-4" />
             </button>
             <button
               title="Delete"
               onClick={props.onDelete}
-              className="rounded p-1.5 text-red-500 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+              className="rounded p-1.5 text-red-500 transition-colors duration-150 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
             >
               <Trash2 className="h-4 w-4" />
             </button>
