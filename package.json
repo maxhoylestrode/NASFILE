@@ -10,15 +10,17 @@
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "migrate": "ts-node scripts/migrate.ts",
+    "cleanup-stale-uploads": "ts-node scripts/cleanup-stale-uploads.ts",
     "create-admin": "ts-node scripts/create-admin.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "argon2": "^0.41.1",
-    "minio": "^8.0.2",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "express-rate-limit": "^7.4.1",
+    "@aws-sdk/client-s3": "^3.687.0",
+    "@aws-sdk/s3-request-presigner": "^3.687.0",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.13.1",
     "pino": "^9.5.0",

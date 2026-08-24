@@ -19,6 +19,9 @@ export interface FileRow {
   mime_type: string | null;
   size_bytes: string; // BIGINT comes back as string from pg
   storage_key: string | null;
+  status: 'pending' | 'complete';
+  upload_id: string | null;
+  part_size_bytes: string | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -86,8 +89,10 @@ export function serializeFile(f: FileRow) {
     folderId: f.folder_id,
     mimeType: f.mime_type,
     sizeBytes: Number(f.size_bytes),
-    storageKey: f.storage_key,
+    status: f.status,
     createdAt: f.created_at,
     updatedAt: f.updated_at,
+    // storage_key and upload_id are internal MinIO bookkeeping — never
+    // serialized to clients.
   };
 }
