@@ -39,6 +39,29 @@ apt-get update -qq
 # before anything tries to use them.
 apt-get install -y -qq curl ca-certificates gnupg lsb-release
 
+# .env is set up here, early, and every section below writes its own
+# credential into it the moment that credential is generated — not
+# batched at the end. A previous version of this script batched all the
+# .env writes into one late section; if something failed in between (as
+# happened on a real run — a typo'd storage path died the script after
+# the Postgres role/password were already created but before either got
+# saved), the generated password was lost forever while the role that
+# used it still existed, requiring a manual ALTER ROLE to recover. This
+# way a crash anywhere only ever strands work that hasn't been persisted
+# yet, never a credential that was already generated.
+if [ ! -f .env ]; then
+  cp .env.example .env
+fi
+
+set_env() {
+  local var="$1" val="$2"
+  if grep -qE "^${var}=" .env; then
+    sed -i "s|^${var}=.*|${var}=${val}|" .env
+  else
+    echo "${var}=${val}" >> .env
+  fi
+}
+
 # --- 1. Node.js ----------------------------------------------------------
 if command -v node >/dev/null && [ "$(node -e 'console.log(process.versions.node.split(".")[0])')" -ge 20 ]; then
   ok "Node.js $(node -v) already installed"
@@ -67,7 +90,8 @@ else
   PG_PASSWORD=$(gen_secret 16)
   sudo -u postgres psql -c "CREATE ROLE drive_clone WITH LOGIN PASSWORD '${PG_PASSWORD}';" >/dev/null
   sudo -u postgres psql -c "CREATE DATABASE drive_clone OWNER drive_clone;" >/dev/null
-  ok "Created Postgres role + database 'drive_clone'"
+  set_env DATABASE_URL "postgres://drive_clone:${PG_PASSWORD}@localhost:5432/drive_clone"
+  ok "Created Postgres role + database 'drive_clone', saved to .env"
   DB_ALREADY_EXISTED=0
 fi
 
@@ -109,6 +133,12 @@ MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
 EOF
   ok "Wrote /etc/default/minio with fresh generated credentials"
 fi
+set_env MINIO_ENDPOINT "localhost"
+set_env MINIO_PORT "9000"
+set_env MINIO_USE_SSL "false"
+set_env MINIO_ACCESS_KEY "$MINIO_ROOT_USER"
+set_env MINIO_SECRET_KEY "$MINIO_ROOT_PASSWORD"
+ok "MinIO credentials saved to .env"
 
 if [ ! -f /etc/systemd/system/minio.service ]; then
   # Standard unit shape from MinIO's own documentation.
@@ -152,29 +182,8 @@ else
 fi
 chown -R "$APP_USER:$APP_USER" "$REPO_ROOT"
 
-# --- 5. .env -------------------------------------------------------------
-if [ ! -f .env ]; then
-  cp .env.example .env
-fi
-
-set_env() {
-  local var="$1" val="$2"
-  if grep -qE "^${var}=" .env; then
-    sed -i "s|^${var}=.*|${var}=${val}|" .env
-  else
-    echo "${var}=${val}" >> .env
-  fi
-}
-
-if [ "$DB_ALREADY_EXISTED" -eq 0 ]; then
-  set_env DATABASE_URL "postgres://drive_clone:${PG_PASSWORD}@localhost:5432/drive_clone"
-fi
-set_env MINIO_ENDPOINT "localhost"
-set_env MINIO_PORT "9000"
-set_env MINIO_USE_SSL "false"
-set_env MINIO_ACCESS_KEY "$MINIO_ROOT_USER"
-set_env MINIO_SECRET_KEY "$MINIO_ROOT_PASSWORD"
-
+# --- 5. Public domains (just prompts — the credentials above are
+#        already saved) -------------------------------------------------
 echo
 echo "MinIO needs a public hostname for presigned URLs to work in a browser"
 echo "(the app server and MinIO can be on this same box, but the browser has"
@@ -184,8 +193,6 @@ if [ -n "$S3_DOMAIN" ]; then
   set_env MINIO_PUBLIC_URL "https://${S3_DOMAIN}"
 fi
 read -r -p "What domain will the APP itself be reachable at? (e.g. drive.yourdomain.com — just for the summary at the end, not stored anywhere) " APP_DOMAIN
-
-ok ".env updated with real Postgres + MinIO credentials"
 
 # --- 6. Hand off to deploy.sh as the app user --------------------------------
 bold "Handing off to scripts/deploy.sh as user '$APP_USER'..."
