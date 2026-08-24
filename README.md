@@ -77,6 +77,16 @@ Manager host for the whole app. MinIO still needs its own separate
 subdomain (see "Exposing MinIO" below) since upload/download bytes
 bypass this server entirely.
 
+**Fastest path to a first deploy:** `bash scripts/deploy.sh` from the
+repo root. Generates real JWT secrets, checks the rest of `.env` isn't
+still placeholder values, builds both frontend and backend, runs
+migrations, optionally creates the admin account and a systemd unit
+(`deploy/drive-clone.service`) so it survives reboots — prints the exact
+`sudo systemctl` commands rather than running them itself. What it
+deliberately doesn't touch: Postgres, MinIO, or Nginx Proxy Manager —
+those are assumed to already exist per your homelab stack, and NPM setup
+specifically needs a human anyway (see "Exposing MinIO" below).
+
 If `frontend/dist` doesn't exist (frontend never built), the server logs
 a warning at startup and runs API-only — nothing breaks, there's just no
 UI to serve.
