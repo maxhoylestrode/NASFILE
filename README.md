@@ -77,15 +77,28 @@ Manager host for the whole app. MinIO still needs its own separate
 subdomain (see "Exposing MinIO" below) since upload/download bytes
 bypass this server entirely.
 
-**Fastest path to a first deploy:** `bash scripts/deploy.sh` from the
-repo root. Generates real JWT secrets, checks the rest of `.env` isn't
-still placeholder values, builds both frontend and backend, runs
-migrations, optionally creates the admin account and a systemd unit
-(`deploy/drive-clone.service`) so it survives reboots — prints the exact
-`sudo systemctl` commands rather than running them itself. What it
-deliberately doesn't touch: Postgres, MinIO, or Nginx Proxy Manager —
-those are assumed to already exist per your homelab stack, and NPM setup
-specifically needs a human anyway (see "Exposing MinIO" below).
+**Deploying to a fresh server** (nothing installed yet but the OS):
+`sudo bash scripts/provision-server.sh`. Installs Node.js, real
+PostgreSQL, real MinIO (systemd units for both, following each project's
+own documented install method), creates a dedicated non-root
+`drive-clone` system user to actually run the app under, writes real
+generated credentials into `.env`, then hands off into `deploy.sh`
+below. Ends by printing exactly what to put into your reverse proxy —
+domain → `<this box's LAN IP>:3000` for the app, another domain →
+`<LAN IP>:9000` for MinIO. Doesn't touch a reverse proxy itself (assumes
+you're running one elsewhere, e.g. Nginx Proxy Manager on a different
+box) and won't touch the firewall without an explicit yes at that exact
+step — it detects your actual SSH port first rather than assuming 22, to
+avoid locking you out. **Only runs on Debian/Ubuntu** (apt-based).
+Root-only on purpose — it's doing real system-level installs.
+
+**Deploying where Postgres/MinIO already exist:** `bash scripts/deploy.sh`
+from the repo root (no root needed). Generates real JWT secrets, checks
+the rest of `.env` isn't still placeholder values, builds both frontend
+and backend, runs migrations, optionally creates the admin account and a
+systemd unit (`deploy/drive-clone.service`) — prints the `sudo systemctl`
+commands rather than running them itself, since it doesn't assume root.
+`provision-server.sh` calls this automatically as its last step.
 
 If `frontend/dist` doesn't exist (frontend never built), the server logs
 a warning at startup and runs API-only — nothing breaks, there's just no
