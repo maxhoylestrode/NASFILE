@@ -268,28 +268,73 @@ filesRouter.patch(
   }),
 );
 
-// DELETE /files/:id — removes the metadata row. For a completed file
-// this also deletes the underlying MinIO object; for a still-pending
-// upload it aborts the multipart upload instead (there's no finished
-// object to delete yet, just uploaded parts taking up space).
+// DELETE /files/:id — a still-pending upload has no finished object to
+// preserve, so it's always removed outright (abort + row delete), same
+// as before. A completed file's first DELETE moves it to the Bin
+// instead of touching MinIO. Calling DELETE again on an already-trashed
+// file is what actually deletes the object and the row for good.
 filesRouter.delete(
   '/:id',
   validate(uuidParamSchema, 'params'),
   asyncHandler(async (req, res) => {
     const { id } = req.params as unknown as z.infer<typeof uuidParamSchema>;
-    const file = await getOwnedFile(pool, id, req.user!.id);
+    const file = await getOwnedFile(pool, id, req.user!.id, { includeTrashed: true });
 
-    if (file.status === 'pending' && file.upload_id && file.storage_key) {
-      await abortMultipartUpload(file.storage_key, file.upload_id).catch((err) => {
-        // Already aborted/expired on the MinIO side — fine, we're
-        // deleting the row either way. Anything else, surface it.
-        if (!(err instanceof Error) || !/NoSuchUpload/i.test(err.message)) throw err;
-      });
-    } else if (file.storage_key) {
-      await deleteObject(file.storage_key);
+    if (file.status === 'pending') {
+      if (file.upload_id && file.storage_key) {
+        await abortMultipartUpload(file.storage_key, file.upload_id).catch((err) => {
+          if (!(err instanceof Error) || !/NoSuchUpload/i.test(err.message)) throw err;
+        });
+      }
+      await pool.query('DELETE FROM files WHERE id = $1', [id]);
+      res.status(204).send();
+      return;
     }
 
+    if (!file.deleted_at) {
+      await pool.query('UPDATE files SET deleted_at = now() WHERE id = $1', [id]);
+      res.status(204).send();
+      return;
+    }
+
+    if (file.storage_key) {
+      await deleteObject(file.storage_key);
+    }
     await pool.query('DELETE FROM files WHERE id = $1', [id]);
     res.status(204).send();
+  }),
+);
+
+// POST /files/:id/restore — undoes a soft-delete. The containing folder
+// must not itself be trashed (restore that first) — trying to browse
+// into a trashed folder already 404s everywhere else, so a file
+// restored into one would be unreachable anyway.
+filesRouter.post(
+  '/:id/restore',
+  validate(uuidParamSchema, 'params'),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params as unknown as z.infer<typeof uuidParamSchema>;
+    const file = await getOwnedFile(pool, id, req.user!.id, { includeTrashed: true });
+    if (!file.deleted_at) {
+      throw new BadRequestError('This file is not in the Bin');
+    }
+
+    const folder = await getOwnedFolder(pool, file.folder_id, req.user!.id, { includeTrashed: true });
+    if (folder.deleted_at) {
+      throw new ConflictError('The containing folder is also in the Bin — restore that first');
+    }
+
+    try {
+      const { rows } = await pool.query<FileRow>(
+        'UPDATE files SET deleted_at = NULL WHERE id = $1 RETURNING *',
+        [id],
+      );
+      res.status(200).json(serializeFile(rows[0]!));
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        throw new ConflictError('A file with this name already exists in the destination — rename it first');
+      }
+      throw err;
+    }
   }),
 );

@@ -22,6 +22,7 @@ export interface Folder {
   isRoot: boolean;
   createdAt: string;
   updatedAt: string;
+  deletedAt: string | null;
 }
 
 export type FileStatus = 'pending' | 'complete';
@@ -35,6 +36,7 @@ export interface DriveFile {
   status: FileStatus;
   createdAt: string;
   updatedAt: string;
+  deletedAt: string | null;
 }
 
 export interface FolderContents {
@@ -80,4 +82,9 @@ export interface ApiErrorBody {
 
 export interface StorageUsage {
   usedBytes: number;
+}
+
+export interface TrashContents {
+  folders: Folder[];
+  files: DriveFile[];
 }

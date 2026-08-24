@@ -81,7 +81,7 @@ export function ItemRow(props: ItemRowProps) {
               <FolderInput className="h-4 w-4" />
             </button>
             <button
-              title="Delete"
+              title="Move to Bin"
               onClick={props.onDelete}
               className="rounded p-1.5 text-red-500 transition-colors duration-150 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
             >

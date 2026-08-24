@@ -10,6 +10,7 @@ import type {
   RefreshResponse,
   ResumeUploadResponse,
   StorageUsage,
+  TrashContents,
 } from './types';
 import { clearSession, getAccessToken, getRefreshToken, saveAccessToken } from './tokenStore';
 
@@ -150,4 +151,14 @@ export const api = {
   getDownloadUrl: (fileId: string) => request<DownloadUrlResponse>(`/files/${fileId}/download`),
 
   getStorageUsage: () => request<StorageUsage>('/files/storage'),
+
+  getTrash: () => request<TrashContents>('/folders/trash/all'),
+
+  restoreFolder: (id: string) => request<Folder>(`/folders/${id}/restore`, { method: 'POST' }),
+
+  restoreFile: (id: string) => request<DriveFile>(`/files/${id}/restore`, { method: 'POST' }),
+
+  permanentlyDeleteFolder: (id: string) => request<void>(`/folders/${id}`, { method: 'DELETE' }),
+
+  permanentlyDeleteFile: (id: string) => request<void>(`/files/${id}`, { method: 'DELETE' }),
 };

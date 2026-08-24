@@ -11,6 +11,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "migrate": "ts-node scripts/migrate.ts",
     "cleanup-stale-uploads": "ts-node scripts/cleanup-stale-uploads.ts",
+    "purge-trash": "ts-node scripts/purge-trash.ts",
     "create-admin": "ts-node scripts/create-admin.ts",
     "typecheck": "tsc --noEmit",
     "build:frontend": "npm --prefix frontend install && npm --prefix frontend run build",

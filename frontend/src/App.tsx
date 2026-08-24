@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import { LoginPage } from './pages/LoginPage';
 import { AcceptInvitePage } from './pages/AcceptInvitePage';
 import { DrivePage } from './pages/DrivePage';
+import { BinPage } from './pages/BinPage';
 import { AdminInvitesPage } from './pages/AdminInvitesPage';
 import { RequireAuth, RequireAdmin } from './components/RequireAuth';
 
@@ -15,6 +16,14 @@ export default function App() {
         element={
           <RequireAuth>
             <DrivePage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/bin"
+        element={
+          <RequireAuth>
+            <BinPage />
           </RequireAuth>
         }
       />

@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { HardDrive, Plus, FolderPlus, Upload as UploadIcon, UserPlus, Folder as FolderIcon, Database } from 'lucide-react';
+import { HardDrive, Plus, FolderPlus, Upload as UploadIcon, UserPlus, Folder as FolderIcon, Trash2, Database } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { api } from '../api/client';
 import { formatBytes } from '../lib/format';
 
 interface SidebarProps {
-  onNewFolder: () => void;
-  onUploadClick: () => void;
+  onNewFolder?: () => void;
+  onUploadClick?: () => void;
   isAdmin?: boolean;
 }
 
@@ -38,6 +38,7 @@ export function Sidebar({ onNewFolder, onUploadClick, isAdmin }: SidebarProps) {
         <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">Silo</span>
       </div>
 
+      {(onNewFolder || onUploadClick) && (
       <div ref={menuRef} className="relative mb-4">
         <button
           onClick={() => setMenuOpen((v) => !v)}
@@ -50,7 +51,7 @@ export function Sidebar({ onNewFolder, onUploadClick, isAdmin }: SidebarProps) {
             <button
               onClick={() => {
                 setMenuOpen(false);
-                onNewFolder();
+                onNewFolder?.();
               }}
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 transition-colors duration-100 hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-600"
             >
@@ -59,7 +60,7 @@ export function Sidebar({ onNewFolder, onUploadClick, isAdmin }: SidebarProps) {
             <button
               onClick={() => {
                 setMenuOpen(false);
-                onUploadClick();
+                onUploadClick?.();
               }}
               className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 transition-colors duration-100 hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-600"
             >
@@ -68,11 +69,29 @@ export function Sidebar({ onNewFolder, onUploadClick, isAdmin }: SidebarProps) {
           </div>
         )}
       </div>
+      )}
 
       <nav className="flex flex-1 flex-col gap-0.5">
-        <div className="flex items-center gap-3 rounded-full bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300">
+        <Link
+          to="/"
+          className={`flex items-center gap-3 rounded-full px-3 py-2 text-sm font-medium transition-colors duration-150 ${
+            location.pathname === '/'
+              ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300'
+              : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700'
+          }`}
+        >
           <FolderIcon className="h-4 w-4" /> My Drive
-        </div>
+        </Link>
+        <Link
+          to="/bin"
+          className={`flex items-center gap-3 rounded-full px-3 py-2 text-sm font-medium transition-colors duration-150 ${
+            location.pathname === '/bin'
+              ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300'
+              : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700'
+          }`}
+        >
+          <Trash2 className="h-4 w-4" /> Bin
+        </Link>
         {isAdmin && (
           <Link
             to="/admin/invites"

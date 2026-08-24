@@ -5,7 +5,6 @@ import { useAuth } from '../auth/AuthContext';
 import { Breadcrumb } from '../components/Breadcrumb';
 import { ItemRow } from '../components/ItemRow';
 import { PromptModal } from '../components/PromptModal';
-import { ConfirmDialog } from '../components/ConfirmDialog';
 import { MoveModal } from '../components/MoveModal';
 import { UploadPanel } from '../components/UploadPanel';
 import { Sidebar } from '../components/Sidebar';
@@ -19,8 +18,6 @@ type ModalState =
   | { type: 'rename-file'; file: DriveFile }
   | { type: 'move-folder'; folder: Folder }
   | { type: 'move-file'; file: DriveFile }
-  | { type: 'delete-folder'; folder: Folder }
-  | { type: 'delete-file'; file: DriveFile }
   | null;
 
 export function DrivePage() {
@@ -146,7 +143,7 @@ export function DrivePage() {
                   onOpen={() => openFolder(folder)}
                   onRename={() => setModal({ type: 'rename-folder', folder })}
                   onMove={() => setModal({ type: 'move-folder', folder })}
-                  onDelete={() => setModal({ type: 'delete-folder', folder })}
+                  onDelete={() => runAction(() => api.deleteFolder(folder.id))}
                 />
               ))}
               {data?.files.map((file) => (
@@ -157,7 +154,7 @@ export function DrivePage() {
                   onDownload={() => handleDownload(file)}
                   onRename={() => setModal({ type: 'rename-file', file })}
                   onMove={() => setModal({ type: 'move-file', file })}
-                  onDelete={() => setModal({ type: 'delete-file', file })}
+                  onDelete={() => runAction(() => api.deleteFile(file.id))}
                 />
               ))}
             </div>
@@ -215,26 +212,6 @@ export function DrivePage() {
           rootFolderId={rootFolderId!}
           onClose={() => setModal(null)}
           onMove={(destId) => runAction(() => api.moveFile(modal.file.id, destId))}
-        />
-      )}
-      {modal?.type === 'delete-folder' && (
-        <ConfirmDialog
-          title="Delete folder"
-          message={`Delete "${modal.folder.name}" and everything inside it? This can't be undone.`}
-          confirmLabel="Delete"
-          danger
-          onClose={() => setModal(null)}
-          onConfirm={() => runAction(() => api.deleteFolder(modal.folder.id))}
-        />
-      )}
-      {modal?.type === 'delete-file' && (
-        <ConfirmDialog
-          title="Delete file"
-          message={`Delete "${modal.file.name}"? This can't be undone.`}
-          confirmLabel="Delete"
-          danger
-          onClose={() => setModal(null)}
-          onConfirm={() => runAction(() => api.deleteFile(modal.file.id))}
         />
       )}
     </div>

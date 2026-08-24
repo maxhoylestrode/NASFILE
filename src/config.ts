@@ -43,6 +43,7 @@ const envSchema = z.object({
   PRESIGN_UPLOAD_TTL_SECONDS: z.coerce.number().int().positive().default(6 * 60 * 60),
   PRESIGN_DOWNLOAD_TTL_SECONDS: z.coerce.number().int().positive().default(60 * 60),
   STALE_UPLOAD_CLEANUP_HOURS: z.coerce.number().int().positive().default(48),
+  TRASH_RETENTION_DAYS: z.coerce.number().int().positive().default(30),
 
   // Invites
   INVITE_TTL_HOURS: z.coerce.number().int().positive().default(72),

@@ -31,18 +31,39 @@ folder/file is strictly scoped to its owner — a mismatched owner returns
 
 - `GET /folders/:id` — lists the folder itself plus its direct subfolders
   and files
+- `GET /files/storage` — `{ usedBytes }`, sum of the current user's
+  completed files. No quota/cap exists yet — this is informational only.
 - `POST /folders` — `{ name, parentId }`, creates a folder under an
   explicit parent
 - `PATCH /folders/:id` — `{ name?, parentId? }`, rename and/or move; blocks
   moving a folder into its own subtree (walks the parent chain via a
   recursive CTE) and blocks any modification of the per-user root folder
-- `DELETE /folders/:id` — hard delete; cascades to descendant folders and
-  files via `ON DELETE CASCADE` (blocked for the root folder)
+- `DELETE /folders/:id` — **first call moves the folder (and everything
+  inside it) to the Bin.** A second `DELETE` on an already-trashed folder
+  is what actually removes it and its files' MinIO objects for good.
+  Blocked for the root folder, either way.
+- `POST /folders/:id/restore` — undoes a soft-delete for a folder and
+  everything trashed alongside it in the same batch. 409s if the
+  containing folder is also trashed (restore that first) or if something
+  with the same name already exists in the destination.
+- `GET /folders/trash/all` — everything currently in the Bin: one row per
+  trashed subtree root (a trashed folder's descendants aren't listed
+  separately), across both folders and files.
 - `PATCH /files/:id` — `{ name?, folderId? }`, rename and/or move to a
   different folder
-- `DELETE /files/:id` — removes the metadata row (the underlying MinIO
-  object isn't touched — Session 3 wires up real upload/download and
-  `storage_key` is currently always `NULL`/manually inserted for testing)
+- `DELETE /files/:id` — a still-pending upload is always removed outright
+  (nothing finished to preserve). A completed file's **first** `DELETE`
+  moves it to the Bin instead of touching MinIO; calling `DELETE` again
+  on an already-trashed file deletes the object and the row for good.
+- `POST /files/:id/restore` — undoes a soft-delete. 409s if the containing
+  folder is itself trashed (restore that first) or on a name collision.
+
+Trashed items don't occupy their old name — you can create (or restore)
+something with the same name a trashed item had; the unique-name indexes
+on `folders`/`files` are `deleted_at IS NULL`-scoped. `npm run
+purge-trash` (cron-able, same pattern as `cleanup-stale-uploads` below)
+permanently removes anything that's been in the Bin longer than
+`TRASH_RETENTION_DAYS` (default 30).
 
 Every account gets exactly one root folder (`is_root = true`,
 `parent_id IS NULL`), created at invite-acceptance time. `POST
