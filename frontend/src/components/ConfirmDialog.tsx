@@ -28,10 +28,10 @@ export function ConfirmDialog({ title, message, confirmLabel = 'Confirm', danger
 
   return (
     <Modal title={title} onClose={onClose}>
-      <p className="mb-4 text-sm text-slate-600">{message}</p>
-      {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+      <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">{message}</p>
+      {error && <p className="mb-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
       <div className="flex justify-end gap-2">
-        <button onClick={onClose} className="rounded px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100">
+        <button onClick={onClose} className="rounded px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700">
           Cancel
         </button>
         <button

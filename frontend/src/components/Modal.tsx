@@ -8,12 +8,12 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
       role="presentation"
     >
       <div
-        className="w-full max-w-sm rounded-lg bg-white p-5 shadow-xl"
+        className="w-full max-w-sm rounded-lg bg-white p-5 shadow-xl dark:bg-slate-800"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
       >
-        <h2 className="mb-4 text-base font-semibold text-slate-900">{title}</h2>
+        <h2 className="mb-4 text-base font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
         {children}
       </div>
     </div>

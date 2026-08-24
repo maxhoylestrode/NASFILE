@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
-import { FolderPlus, Upload as UploadIcon, LogOut, UserPlus, HardDrive } from 'lucide-react';
 import { api, ApiError } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { Breadcrumb } from '../components/Breadcrumb';
@@ -10,6 +8,8 @@ import { PromptModal } from '../components/PromptModal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { MoveModal } from '../components/MoveModal';
 import { UploadPanel } from '../components/UploadPanel';
+import { Sidebar } from '../components/Sidebar';
+import { TopBar } from '../components/TopBar';
 import { startUpload } from '../upload/uploadManager';
 import type { DriveFile, Folder } from '../api/types';
 
@@ -96,87 +96,75 @@ export function DrivePage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
-        <div className="flex items-center gap-2">
-          <HardDrive className="h-5 w-5 text-indigo-600" />
-          <span className="font-semibold text-slate-900">drive-clone</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="hidden text-sm text-slate-500 sm:inline">{user?.email}</span>
-          {user?.isAdmin && (
-            <Link to="/admin/invites" title="Create invite" className="rounded p-1.5 text-slate-500 hover:bg-slate-100">
-              <UserPlus className="h-4 w-4" />
-            </Link>
-          )}
-          <button onClick={logout} title="Sign out" className="rounded p-1.5 text-slate-500 hover:bg-slate-100">
-            <LogOut className="h-4 w-4" />
-          </button>
-        </div>
-      </header>
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-900">
+      <Sidebar
+        onNewFolder={() => setModal({ type: 'new-folder' })}
+        onUploadClick={() => fileInputRef.current?.click()}
+        isAdmin={user?.isAdmin}
+      />
 
-      <main className="mx-auto max-w-3xl px-4 py-6">
-        <div className="mb-4 flex items-center justify-between gap-2">
-          <Breadcrumb path={path} onNavigate={navigateTo} />
-          <div className="flex shrink-0 gap-2">
-            <button
-              onClick={() => setModal({ type: 'new-folder' })}
-              className="flex items-center gap-1 rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100"
-            >
-              <FolderPlus className="h-4 w-4" /> New folder
-            </button>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1 rounded bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
-            >
-              <UploadIcon className="h-4 w-4" /> Upload
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={(e) => e.target.files && uploadFiles(e.target.files)}
-            />
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <TopBar email={user?.email} onLogout={logout} />
+
+        <main className="flex-1 overflow-y-auto px-6 py-6">
+          <div className="mx-auto max-w-4xl">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <Breadcrumb path={path} onNavigate={navigateTo} />
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => e.target.files && uploadFiles(e.target.files)}
+              />
+            </div>
+
+            {actionError && (
+              <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
+                {actionError}
+              </p>
+            )}
+
+            <div className="rounded-lg border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+              {isLoading && <p className="p-6 text-center text-sm text-slate-400 dark:text-slate-500">Loading…</p>}
+              {error && (
+                <p className="p-6 text-center text-sm text-red-600 dark:text-red-400">Failed to load this folder.</p>
+              )}
+              {data && data.subfolders.length === 0 && data.files.length === 0 && (
+                <p className="p-10 text-center text-sm text-slate-400 dark:text-slate-500">
+                  Empty — drag files in, or use New.
+                </p>
+              )}
+              {data?.subfolders.map((folder) => (
+                <ItemRow
+                  key={folder.id}
+                  kind="folder"
+                  item={folder}
+                  onOpen={() => openFolder(folder)}
+                  onRename={() => setModal({ type: 'rename-folder', folder })}
+                  onMove={() => setModal({ type: 'move-folder', folder })}
+                  onDelete={() => setModal({ type: 'delete-folder', folder })}
+                />
+              ))}
+              {data?.files.map((file) => (
+                <ItemRow
+                  key={file.id}
+                  kind="file"
+                  item={file}
+                  onDownload={() => handleDownload(file)}
+                  onRename={() => setModal({ type: 'rename-file', file })}
+                  onMove={() => setModal({ type: 'move-file', file })}
+                  onDelete={() => setModal({ type: 'delete-file', file })}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-
-        {actionError && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{actionError}</p>}
-
-        <div className="rounded-lg border border-slate-200 bg-white">
-          {isLoading && <p className="p-6 text-center text-sm text-slate-400">Loading…</p>}
-          {error && <p className="p-6 text-center text-sm text-red-600">Failed to load this folder.</p>}
-          {data && data.subfolders.length === 0 && data.files.length === 0 && (
-            <p className="p-10 text-center text-sm text-slate-400">Empty — drag files in, or use Upload.</p>
-          )}
-          {data?.subfolders.map((folder) => (
-            <ItemRow
-              key={folder.id}
-              kind="folder"
-              item={folder}
-              onOpen={() => openFolder(folder)}
-              onRename={() => setModal({ type: 'rename-folder', folder })}
-              onMove={() => setModal({ type: 'move-folder', folder })}
-              onDelete={() => setModal({ type: 'delete-folder', folder })}
-            />
-          ))}
-          {data?.files.map((file) => (
-            <ItemRow
-              key={file.id}
-              kind="file"
-              item={file}
-              onDownload={() => handleDownload(file)}
-              onRename={() => setModal({ type: 'rename-file', file })}
-              onMove={() => setModal({ type: 'move-file', file })}
-              onDelete={() => setModal({ type: 'delete-file', file })}
-            />
-          ))}
-        </div>
-      </main>
+        </main>
+      </div>
 
       {dragOver && (
-        <div className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center border-4 border-dashed border-indigo-400 bg-indigo-50/70">
-          <p className="text-lg font-medium text-indigo-700">Drop to upload</p>
+        <div className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center border-4 border-dashed border-indigo-400 bg-indigo-50/70 dark:bg-indigo-950/60">
+          <p className="text-lg font-medium text-indigo-700 dark:text-indigo-300">Drop to upload</p>
         </div>
       )}
 

@@ -1,1 +1,11 @@
 @import "tailwindcss";
+
+/* Class-based dark mode: Tailwind v4 defaults dark: to prefers-color-scheme
+   only. We want a manual toggle (persisted in localStorage) to win over
+   system preference, so dark: applies whenever the <html> element (or an
+   ancestor) carries the .dark class — see src/theme/ThemeContext.tsx. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+html {
+  color-scheme: light dark;
+}

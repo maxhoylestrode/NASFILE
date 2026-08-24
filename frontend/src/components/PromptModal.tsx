@@ -33,16 +33,16 @@ export function PromptModal({ title, label, initialValue = '', confirmLabel = 'S
   return (
     <Modal title={title} onClose={onClose}>
       <form onSubmit={handleSubmit}>
-        <label className="mb-1 block text-sm text-slate-600">{label}</label>
+        <label className="mb-1 block text-sm text-slate-600 dark:text-slate-300">{label}</label>
         <input
           autoFocus
-          className="mb-3 w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+          className="mb-3 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-indigo-500 focus:outline-none dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
           value={value}
           onChange={(e) => setValue(e.target.value)}
         />
-        {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+        {error && <p className="mb-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
         <div className="flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100">
+          <button type="button" onClick={onClose} className="rounded px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700">
             Cancel
           </button>
           <button

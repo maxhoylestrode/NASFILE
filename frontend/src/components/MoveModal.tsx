@@ -61,22 +61,22 @@ export function MoveModal({ title, rootFolderId, disabledIds = [], onMove, onClo
 
   return (
     <Modal title={title} onClose={onClose}>
-      <nav className="mb-2 flex flex-wrap items-center gap-1 text-xs text-slate-500">
+      <nav className="mb-2 flex flex-wrap items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
         {path.map((crumb, i) => (
           <span key={crumb.id} className="flex items-center gap-1">
             {i > 0 && <ChevronRight className="h-3 w-3" />}
-            <button onClick={() => navigateTo(i)} className="rounded px-1 hover:bg-slate-100">
+            <button onClick={() => navigateTo(i)} className="rounded px-1 hover:bg-slate-100 dark:hover:bg-slate-700">
               {crumb.name}
             </button>
           </span>
         ))}
       </nav>
 
-      <div className="mb-3 h-48 overflow-y-auto rounded border border-slate-200">
+      <div className="mb-3 h-48 overflow-y-auto rounded border border-slate-200 dark:border-slate-700">
         {loading ? (
-          <p className="p-3 text-sm text-slate-400">Loading…</p>
+          <p className="p-3 text-sm text-slate-400 dark:text-slate-500">Loading…</p>
         ) : subfolders.length === 0 ? (
-          <p className="p-3 text-sm text-slate-400">No subfolders here</p>
+          <p className="p-3 text-sm text-slate-400 dark:text-slate-500">No subfolders here</p>
         ) : (
           subfolders.map((f) => {
             const disabled = disabledIds.includes(f.id);
@@ -85,9 +85,9 @@ export function MoveModal({ title, rootFolderId, disabledIds = [], onMove, onClo
                 key={f.id}
                 onClick={() => !disabled && navigateInto(f)}
                 disabled={disabled}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-100 dark:hover:bg-slate-700"
               >
-                <FolderIcon className="h-4 w-4 text-indigo-500" />
+                <FolderIcon className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
                 {f.name}
               </button>
             );
@@ -95,10 +95,10 @@ export function MoveModal({ title, rootFolderId, disabledIds = [], onMove, onClo
         )}
       </div>
 
-      {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
+      {error && <p className="mb-2 text-sm text-red-600 dark:text-red-400">{error}</p>}
 
       <div className="flex justify-end gap-2">
-        <button onClick={onClose} className="rounded px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100">
+        <button onClick={onClose} className="rounded px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700">
           Cancel
         </button>
         <button
