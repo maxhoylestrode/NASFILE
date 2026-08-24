@@ -33,6 +33,12 @@ ok "Detected LAN IP: ${LAN_IP:-<unknown, check manually>}"
 
 apt-get update -qq
 
+# Some minimal cloud/container base images ship without curl at all —
+# NodeSource's setup script and the MinIO download both need it, so make
+# sure it (and a couple of other things those two commonly assume) exist
+# before anything tries to use them.
+apt-get install -y -qq curl ca-certificates gnupg lsb-release
+
 # --- 1. Node.js ----------------------------------------------------------
 if command -v node >/dev/null && [ "$(node -e 'console.log(process.versions.node.split(".")[0])')" -ge 20 ]; then
   ok "Node.js $(node -v) already installed"
