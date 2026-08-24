@@ -77,3 +77,7 @@ export interface CreateInviteResponse {
 export interface ApiErrorBody {
   error: { code: string; message: string };
 }
+
+export interface StorageUsage {
+  usedBytes: number;
+}

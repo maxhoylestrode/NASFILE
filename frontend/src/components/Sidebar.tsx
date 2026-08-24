@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { HardDrive, Plus, FolderPlus, Upload as UploadIcon, UserPlus, Folder as FolderIcon } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { HardDrive, Plus, FolderPlus, Upload as UploadIcon, UserPlus, Folder as FolderIcon, Database } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { api } from '../api/client';
+import { formatBytes } from '../lib/format';
 
 interface SidebarProps {
   onNewFolder: () => void;
@@ -12,6 +15,12 @@ export function Sidebar({ onNewFolder, onUploadClick, isAdmin }: SidebarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+
+  const { data: storage } = useQuery({
+    queryKey: ['storage'],
+    queryFn: () => api.getStorageUsage(),
+    staleTime: 30_000,
+  });
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -77,6 +86,13 @@ export function Sidebar({ onNewFolder, onUploadClick, isAdmin }: SidebarProps) {
           </Link>
         )}
       </nav>
+
+      <div className="mt-2 border-t border-slate-100 px-3 pt-3 dark:border-slate-700">
+        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+          <Database className="h-3.5 w-3.5 shrink-0" />
+          {storage ? <span>{formatBytes(storage.usedBytes)} used</span> : <span>—</span>}
+        </div>
+      </div>
     </aside>
   );
 }

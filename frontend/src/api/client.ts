@@ -9,6 +9,7 @@ import type {
   LoginResponse,
   RefreshResponse,
   ResumeUploadResponse,
+  StorageUsage,
 } from './types';
 import { clearSession, getAccessToken, getRefreshToken, saveAccessToken } from './tokenStore';
 
@@ -147,4 +148,6 @@ export const api = {
     request<DriveFile>(`/files/uploads/${fileId}/complete`, { method: 'POST', body: { parts } }),
 
   getDownloadUrl: (fileId: string) => request<DownloadUrlResponse>(`/files/${fileId}/download`),
+
+  getStorageUsage: () => request<StorageUsage>('/files/storage'),
 };

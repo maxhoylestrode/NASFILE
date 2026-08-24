@@ -39,7 +39,10 @@ export function DrivePage() {
     queryFn: () => api.getFolder(currentId),
   });
 
-  const invalidate = useCallback(() => queryClient.invalidateQueries({ queryKey: ['folder', currentId] }), [queryClient, currentId]);
+  const invalidate = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['folder', currentId] });
+    queryClient.invalidateQueries({ queryKey: ['storage'] });
+  }, [queryClient, currentId]);
 
   const openFolder = (folder: Folder) => setPath((p) => [...p, { id: folder.id, name: folder.name }]);
   const navigateTo = (id: string) => setPath((p) => p.slice(0, p.findIndex((c) => c.id === id) + 1));

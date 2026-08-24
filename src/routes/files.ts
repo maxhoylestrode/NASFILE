@@ -208,6 +208,22 @@ filesRouter.get(
   }),
 );
 
+// GET /files/storage — aggregate bytes used by the current user's
+// completed files. No quota/cap concept exists yet, so this is purely
+// informational (a real number, not a fake "X of Y GB" that implies a
+// limit we don't actually enforce). Pending uploads are excluded since
+// their bytes aren't durably stored as a finished object yet.
+filesRouter.get(
+  '/storage',
+  asyncHandler(async (req, res) => {
+    const { rows } = await pool.query<{ total: string }>(
+      `SELECT COALESCE(SUM(size_bytes), 0) AS total FROM files WHERE owner_id = $1 AND status = 'complete'`,
+      [req.user!.id],
+    );
+    res.status(200).json({ usedBytes: Number(rows[0]!.total) });
+  }),
+);
+
 // PATCH /files/:id — rename and/or move to a different folder.
 const patchFileSchema = z
   .object({
