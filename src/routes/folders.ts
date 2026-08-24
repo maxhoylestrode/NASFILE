@@ -8,6 +8,7 @@ import { uuidParamSchema, folderNameSchema } from '../lib/ids';
 import { BadRequestError, ConflictError, ForbiddenError } from '../middleware/errors';
 import {
   getOwnedFolder,
+  getAccessibleFolder,
   getDescendantFolderIds,
   isSameOrAncestor,
   isUniqueViolation,
@@ -27,16 +28,21 @@ foldersRouter.get(
   validate(uuidParamSchema, 'params'),
   asyncHandler(async (req, res) => {
     const { id } = req.params as unknown as z.infer<typeof uuidParamSchema>;
-    const folder = await getOwnedFolder(pool, id, req.user!.id);
+    // getAccessibleFolder allows the owner OR someone this folder (or an
+    // ancestor of it) was shared with — see dbHelpers.ts. The children
+    // query below deliberately filters by the folder's *actual* owner
+    // (folder.owner_id), not the requester's id — a shared visitor's
+    // browsing shouldn't be scoped to their own (empty, unrelated) files.
+    const folder = await getAccessibleFolder(pool, id, req.user!.id);
 
     const [subfolders, files] = await Promise.all([
       pool.query<FolderRow>(
         'SELECT * FROM folders WHERE parent_id = $1 AND owner_id = $2 AND deleted_at IS NULL ORDER BY name',
-        [id, req.user!.id],
+        [id, folder.owner_id],
       ),
       pool.query<FileRow>(
         'SELECT * FROM files WHERE folder_id = $1 AND owner_id = $2 AND deleted_at IS NULL ORDER BY name',
-        [id, req.user!.id],
+        [id, folder.owner_id],
       ),
     ]);
 

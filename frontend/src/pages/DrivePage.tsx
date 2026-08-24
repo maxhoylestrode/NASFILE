@@ -6,6 +6,7 @@ import { Breadcrumb } from '../components/Breadcrumb';
 import { ItemRow } from '../components/ItemRow';
 import { PromptModal } from '../components/PromptModal';
 import { MoveModal } from '../components/MoveModal';
+import { ShareModal } from '../components/ShareModal';
 import { UploadPanel } from '../components/UploadPanel';
 import { Sidebar } from '../components/Sidebar';
 import { TopBar } from '../components/TopBar';
@@ -18,6 +19,8 @@ type ModalState =
   | { type: 'rename-file'; file: DriveFile }
   | { type: 'move-folder'; folder: Folder }
   | { type: 'move-file'; file: DriveFile }
+  | { type: 'share-folder'; folder: Folder }
+  | { type: 'share-file'; file: DriveFile }
   | null;
 
 export function DrivePage() {
@@ -144,6 +147,7 @@ export function DrivePage() {
                   onRename={() => setModal({ type: 'rename-folder', folder })}
                   onMove={() => setModal({ type: 'move-folder', folder })}
                   onDelete={() => runAction(() => api.deleteFolder(folder.id))}
+                  onShare={() => setModal({ type: 'share-folder', folder })}
                 />
               ))}
               {data?.files.map((file) => (
@@ -155,6 +159,7 @@ export function DrivePage() {
                   onRename={() => setModal({ type: 'rename-file', file })}
                   onMove={() => setModal({ type: 'move-file', file })}
                   onDelete={() => runAction(() => api.deleteFile(file.id))}
+                  onShare={() => setModal({ type: 'share-file', file })}
                 />
               ))}
             </div>
@@ -212,6 +217,22 @@ export function DrivePage() {
           rootFolderId={rootFolderId!}
           onClose={() => setModal(null)}
           onMove={(destId) => runAction(() => api.moveFile(modal.file.id, destId))}
+        />
+      )}
+      {modal?.type === 'share-folder' && (
+        <ShareModal
+          resourceType="folder"
+          resourceId={modal.folder.id}
+          resourceName={modal.folder.name}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {modal?.type === 'share-file' && (
+        <ShareModal
+          resourceType="file"
+          resourceId={modal.file.id}
+          resourceName={modal.file.name}
+          onClose={() => setModal(null)}
         />
       )}
     </div>

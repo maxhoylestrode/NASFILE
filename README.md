@@ -11,6 +11,8 @@ Postgres, MinIO, invite-only JWT auth. Deployed behind Nginx Proxy Manager.
 browser-to-MinIO.
 **Session 4 — done:** React + Tailwind frontend, served from this same
 Express server.
+**Session 5 — done:** visual redesign (Silo rebrand, dark mode), Storage
+view, Bin/Trash, Sharing (user-to-user + public links).
 - Postgres schema: `users`, `invites`, `folders`, `files` (folders/files form a
   real parent/child tree; schema in `db/migrations/001_init.sql`)
 - argon2id password hashing
@@ -145,6 +147,11 @@ See `.env.example`. Notably:
 - `JWT_ACCESS_TTL` / `JWT_REFRESH_TTL` — default 15m / 30d
 - `MINIO_*` — bucket is created automatically at startup if it doesn't exist
 - `INVITE_TTL_HOURS` — default 72
+- `PUBLIC_APP_URL` — **required, no default** (e.g. `https://drive.yourdomain.com`).
+  Used to build the full `/public/:token` URL returned by the public-link
+  endpoints. `scripts/deploy.sh` fails loudly on its placeholder-check if
+  this is still unset.
+- `TRASH_RETENTION_DAYS` — default 30, used by `npm run purge-trash`
 
 ## Conventions used throughout
 
@@ -168,9 +175,11 @@ See `.env.example`. Notably:
   there's no way to invalidate one before it expires. Fine for a
   single-operator homelab; would need a token table before adding
   multi-device sign-out or "log out everywhere."
-- No sharing model — every folder/file is strictly owned by one user, admin
-  included. Revisit if this ever needs to serve more than one person who
-  should see each other's stuff.
+- Sharing is view/download only — there's no in-app document editor, so
+  write access is never granted via a share, only via ownership.
+- Public share links are files only, not folders — sharing an entire
+  folder via an open link (no login) was scoped out as materially bigger
+  and nobody's asked for it yet.
 
 ### Session 3: file upload/download
 
@@ -287,6 +296,84 @@ restart from zero.
 - Bucket CORS defaults to `AllowedOrigins: ['*']` (set in `storage.ts`
   from Session 3) — fine for a single-user homelab, worth tightening to
   your actual frontend origin once this is live.
+
+### Session 5: visual redesign, Storage view, Bin/Trash, Sharing
+
+**Rebrand:** display name changed to "Silo" (page title, sidebar brand
+text) — the repo, npm package, database, S3 bucket, and systemd service
+are all deliberately still named `drive-clone`, to avoid touching live
+infra naming for a cosmetic change.
+
+**Theme system:** light/dark mode via a `.dark` class on `<html>`
+(`frontend/src/theme/ThemeContext.tsx`), toggled by the user or following
+`prefers-color-scheme` until an explicit choice is made, persisted to
+`localStorage`. An inline pre-paint script in `index.html` applies the
+class before React mounts, so there's no flash of the wrong theme.
+
+**Storage view:** `GET /files/storage` — `{ usedBytes }`, sum of
+`size_bytes` across the current user's `status = 'complete'` files.
+Deliberately no fake quota or percentage bar — there's no cap to measure
+against yet.
+
+**Bin/Trash:** every folder/file has a `deleted_at` column
+(`db/migrations/003_soft_delete.sql`). Deleting is two-step: the first
+`DELETE` soft-deletes (moves to the Bin, cascades to everything inside a
+folder); a second `DELETE` on an already-trashed item is what actually
+removes it, including its real MinIO object(s). `POST
+.../:id/restore` undoes a soft-delete; 409s if the containing folder is
+still trashed (restore that first) or if the name collides with
+something already at the destination. `GET /folders/trash/all` lists
+only trashed subtree *roots* — a trashed folder's already-trashed
+children aren't listed again separately. `npm run purge-trash`
+(cron-able) permanently sweeps anything past `TRASH_RETENTION_DAYS`.
+Unique-name indexes are `deleted_at IS NULL`-scoped, so a trashed item's
+old name is immediately reusable.
+
+**Sharing** (`db/migrations/004_sharing.sql`, `src/routes/shares.ts`,
+`src/routes/public.ts`): view/download only, never write — there's no
+in-app editor, so a share can't grant more than ownership already
+implies. Two kinds:
+
+- **User-to-user.** Share a folder or file with another account by
+  email. Access to a shared folder is inherited by everything under
+  it — checked by walking up the `parent_id` chain (recursive CTE) to
+  see whether any ancestor folder has a `share_type = 'user'` row for
+  that recipient. Shared recipients can browse and download, never
+  rename/move/delete/upload — write routes still use the original
+  strict owner-only `getOwnedFolder`/`getOwnedFile` helpers, untouched.
+  Trashing a shared folder immediately revokes the recipient's access
+  (404); restoring it immediately restores access — the share row
+  itself survives the whole cycle.
+  - `POST /shares` — `{ resourceType: 'folder' | 'file', resourceId, email }`
+  - `DELETE /shares/:id` — revoke
+  - `GET /shares?resourceType=&resourceId=` — who a resource is shared
+    with, plus whether it has an active public link
+  - `GET /shares/with-me` — top-level items shared directly with you
+- **Public links** (files only, no folder browsing via a public link —
+  see Known limitations). No login, no click-through — built
+  specifically so a link can be dropped straight into an `<img>`,
+  `<iframe>`, `<video>`, or `<audio>` tag elsewhere (e.g. embedded in a
+  LearnDash page). The token is generated once and only its SHA-256 hash
+  is ever stored (same pattern as invite tokens,
+  `src/lib/shareToken.ts`), so a second `POST` against an existing link
+  **cannot** return the original token again — it responds `{ created:
+  false, token: null, url: null }` instead of silently fabricating one.
+  `GET /public/:token` sits on its own unauthenticated router
+  (`src/routes/public.ts`, mounted at `/public`, deliberately outside
+  `requireAuth`) and 302-redirects straight to a presigned MinIO URL with
+  `Content-Disposition: inline` (vs. `attachment` for normal logged-in
+  downloads), so images/PDF/video/audio render in place instead of
+  triggering a save dialog.
+  - `POST /shares/public-link` — `{ fileId }`, get-or-create
+  - `DELETE /shares/public-link/:fileId` — idempotent revoke
+  - `GET /public/:token` — the actual public-facing redirect
+
+**Copy embed code:** the frontend (`frontend/src/lib/embedCode.ts`)
+builds a ready-to-paste embed tag from the public link + the file's
+extension — `<img>` for images, `<iframe>` for PDFs, `<video>`/`<audio>`
+for those types, and a plain `<a href>` fallback (flagged as
+non-embeddable) for anything else, like Word docs, that browsers won't
+render inline from a URL.
 
 ### Exposing MinIO for direct browser upload/download
 

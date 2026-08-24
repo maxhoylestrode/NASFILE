@@ -7,6 +7,8 @@ import { authRouter } from './routes/auth';
 import { invitesRouter } from './routes/invites';
 import { foldersRouter } from './routes/folders';
 import { filesRouter } from './routes/files';
+import { sharesRouter } from './routes/shares';
+import { publicRouter } from './routes/public';
 import { notFoundHandler, errorHandler } from './middleware/errorHandler';
 
 // Built frontend (npm run build inside frontend/) lands here. Serving it
@@ -57,6 +59,9 @@ export function createApp() {
   app.use('/invites', invitesRouter);
   app.use('/folders', foldersRouter);
   app.use('/files', filesRouter);
+  app.use('/shares', sharesRouter);
+  // Deliberately unauthenticated — see routes/public.ts.
+  app.use('/public', publicRouter);
 
   // Static frontend, if it's been built. In dev, the frontend runs on
   // its own Vite dev server (`npm run dev` in frontend/) with a proxy

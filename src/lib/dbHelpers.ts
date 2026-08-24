@@ -30,6 +30,17 @@ export interface FileRow {
 
 type Queryable = Pick<Pool | PoolClient, 'query'>;
 
+export interface ShareRow {
+  id: string;
+  owner_id: string;
+  folder_id: string | null;
+  file_id: string | null;
+  share_type: 'user' | 'public';
+  shared_with_user_id: string | null;
+  token_hash: string | null;
+  created_at: Date;
+}
+
 /**
  * Fetches a folder by id, scoped to the requesting user. 404s (never 403)
  * on mismatch. Trashed folders are excluded by default — they're not
@@ -110,6 +121,76 @@ export async function isSameOrAncestor(client: Queryable, folderId: string, cand
     [candidateAncestorId, folderId],
   );
   return rows[0]?.hit ?? false;
+}
+
+/**
+ * True if userId has read access to folderId via a 'user' share on that
+ * exact folder or any ancestor of it (inclusive) — sharing a folder
+ * grants browsing access into everything nested inside it. Does not
+ * check ownership; callers combine this with an owner check.
+ */
+export async function hasSharedFolderAccess(client: Queryable, folderId: string, userId: string): Promise<boolean> {
+  const { rows } = await client.query<{ hit: boolean }>(
+    `WITH RECURSIVE chain AS (
+       SELECT id, parent_id FROM folders WHERE id = $1
+       UNION ALL
+       SELECT f.id, f.parent_id FROM folders f JOIN chain c ON f.id = c.parent_id
+     )
+     SELECT EXISTS (
+       SELECT 1 FROM shares s
+       WHERE s.share_type = 'user' AND s.shared_with_user_id = $2 AND s.folder_id IN (SELECT id FROM chain)
+     ) AS hit`,
+    [folderId, userId],
+  );
+  return rows[0]?.hit ?? false;
+}
+
+/**
+ * True if userId has read access to this file: a direct share on the
+ * file itself, or a share on the file's folder or any ancestor of it.
+ */
+export async function hasSharedFileAccess(client: Queryable, file: FileRow, userId: string): Promise<boolean> {
+  const direct = await client.query<{ hit: boolean }>(
+    `SELECT EXISTS (
+       SELECT 1 FROM shares WHERE share_type = 'user' AND file_id = $1 AND shared_with_user_id = $2
+     ) AS hit`,
+    [file.id, userId],
+  );
+  if (direct.rows[0]?.hit) return true;
+  return hasSharedFolderAccess(client, file.folder_id, userId);
+}
+
+/**
+ * Read-path lookup for browsing: owner OR valid share (direct or
+ * inherited). Trashed folders are always excluded — since trashing
+ * cascades through a whole subtree unconditionally, a live (non-trashed)
+ * folder can never have a trashed ancestor, so checking only this
+ * folder's own deleted_at is sufficient; the share-chain walk above
+ * doesn't need to re-check trash state at every level.
+ *
+ * Deliberately separate from getOwnedFolder rather than folding sharing
+ * into it — every write path (rename/move/delete/create-inside/
+ * upload-into) should stay strictly owner-only. Sharing is view/download
+ * access only; use this helper only for the two read paths that need it
+ * (GET /folders/:id, GET /files/:id/download).
+ */
+export async function getAccessibleFolder(client: Queryable, id: string, userId: string): Promise<FolderRow> {
+  const { rows } = await client.query<FolderRow>('SELECT * FROM folders WHERE id = $1 AND deleted_at IS NULL', [id]);
+  const folder = rows[0];
+  if (!folder) throw new NotFoundError('Folder not found');
+  if (folder.owner_id === userId) return folder;
+  if (await hasSharedFolderAccess(client, id, userId)) return folder;
+  throw new NotFoundError('Folder not found');
+}
+
+/** Read-path lookup for download: owner OR valid share. See getAccessibleFolder. */
+export async function getAccessibleFile(client: Queryable, id: string, userId: string): Promise<FileRow> {
+  const { rows } = await client.query<FileRow>('SELECT * FROM files WHERE id = $1 AND deleted_at IS NULL', [id]);
+  const file = rows[0];
+  if (!file) throw new NotFoundError('File not found');
+  if (file.owner_id === userId) return file;
+  if (await hasSharedFileAccess(client, file, userId)) return file;
+  throw new NotFoundError('File not found');
 }
 
 export function isUniqueViolation(err: unknown): boolean {

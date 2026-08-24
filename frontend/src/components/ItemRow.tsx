@@ -1,4 +1,4 @@
-import { Folder as FolderIcon, Download, Pencil, FolderInput, Trash2, Clock } from 'lucide-react';
+import { Folder as FolderIcon, Download, Pencil, FolderInput, Trash2, Clock, Share2 } from 'lucide-react';
 import type { DriveFile, Folder } from '../api/types';
 import { formatBytes, formatDate } from '../lib/format';
 import { getFileIcon } from '../lib/fileIcons';
@@ -10,6 +10,9 @@ interface FolderRowProps {
   onRename: () => void;
   onMove: () => void;
   onDelete: () => void;
+  onShare: () => void;
+  /** Read-only browsing (e.g. a folder shared with you) — hides every write action. */
+  readOnly?: boolean;
 }
 
 interface FileRowProps {
@@ -19,6 +22,8 @@ interface FileRowProps {
   onRename: () => void;
   onMove: () => void;
   onDelete: () => void;
+  onShare: () => void;
+  readOnly?: boolean;
 }
 
 type ItemRowProps = FolderRowProps | FileRowProps;
@@ -64,8 +69,15 @@ export function ItemRow(props: ItemRowProps) {
             <Download className="h-4 w-4" />
           </button>
         )}
-        {!(isFolder && props.item.isRoot) && (
+        {!props.readOnly && !(isFolder && props.item.isRoot) && (
           <>
+            <button
+              title="Share"
+              onClick={props.onShare}
+              className="rounded p-1.5 text-slate-500 transition-colors duration-150 hover:bg-slate-200 dark:text-slate-400 dark:hover:bg-slate-600"
+            >
+              <Share2 className="h-4 w-4" />
+            </button>
             <button
               title="Rename"
               onClick={props.onRename}

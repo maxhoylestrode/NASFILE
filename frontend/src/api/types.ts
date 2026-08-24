@@ -88,3 +88,41 @@ export interface TrashContents {
   folders: Folder[];
   files: DriveFile[];
 }
+
+export interface ShareResource {
+  id: string;
+  resourceType: 'folder' | 'file';
+  resourceId: string;
+  sharedWithEmail: string;
+  createdAt: string;
+}
+
+export interface UserShare {
+  id: string;
+  email: string;
+  createdAt: string;
+}
+
+export interface ListSharesResponse {
+  userShares: UserShare[];
+  hasPublicLink: boolean;
+}
+
+export interface PublicLinkResponse {
+  created: boolean;
+  token: string | null;
+  url: string | null;
+}
+
+export interface SharedWithMeFolder extends Folder {
+  ownerEmail: string;
+}
+
+export interface SharedWithMeFile extends DriveFile {
+  ownerEmail: string;
+}
+
+export interface SharedWithMeResponse {
+  folders: SharedWithMeFolder[];
+  files: SharedWithMeFile[];
+}

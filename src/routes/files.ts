@@ -8,7 +8,7 @@ import { validate } from '../middleware/validate';
 import { requireAuth } from '../middleware/auth';
 import { uuidParamSchema, folderNameSchema } from '../lib/ids';
 import { BadRequestError, ConflictError, HttpError, NotFoundError } from '../middleware/errors';
-import { getOwnedFile, getOwnedFolder, isUniqueViolation, serializeFile, type FileRow } from '../lib/dbHelpers';
+import { getOwnedFile, getOwnedFolder, getAccessibleFile, isUniqueViolation, serializeFile, type FileRow } from '../lib/dbHelpers';
 import {
   buildObjectKey,
   createMultipartUpload,
@@ -197,7 +197,9 @@ filesRouter.get(
   validate(uuidParamSchema, 'params'),
   asyncHandler(async (req, res) => {
     const { id } = req.params as unknown as z.infer<typeof uuidParamSchema>;
-    const file = await getOwnedFile(pool, id, req.user!.id);
+    // Owner OR a valid share (direct on this file, or inherited from an
+    // ancestor folder share) — see dbHelpers.ts getAccessibleFile.
+    const file = await getAccessibleFile(pool, id, req.user!.id);
 
     if (file.status !== 'complete' || !file.storage_key) {
       throw new NotFoundError('File is not available for download (upload not complete)');

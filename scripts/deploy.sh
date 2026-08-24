@@ -67,6 +67,7 @@ check_placeholder DATABASE_URL changeme
 check_placeholder MINIO_ACCESS_KEY changeme
 check_placeholder MINIO_SECRET_KEY changeme
 check_placeholder MINIO_PUBLIC_URL yourdomain
+check_placeholder PUBLIC_APP_URL yourdomain
 
 if [ ${#PLACEHOLDER_VARS[@]} -gt 0 ]; then
   warn "These still look like placeholders in .env — fill in real values, then re-run this script:"

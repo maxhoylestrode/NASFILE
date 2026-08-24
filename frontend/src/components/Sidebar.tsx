@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { HardDrive, Plus, FolderPlus, Upload as UploadIcon, UserPlus, Folder as FolderIcon, Trash2, Database } from 'lucide-react';
+import { HardDrive, Plus, FolderPlus, Upload as UploadIcon, UserPlus, Folder as FolderIcon, Trash2, Users, Database } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { api } from '../api/client';
 import { formatBytes } from '../lib/format';
@@ -81,6 +81,16 @@ export function Sidebar({ onNewFolder, onUploadClick, isAdmin }: SidebarProps) {
           }`}
         >
           <FolderIcon className="h-4 w-4" /> My Drive
+        </Link>
+        <Link
+          to="/shared"
+          className={`flex items-center gap-3 rounded-full px-3 py-2 text-sm font-medium transition-colors duration-150 ${
+            location.pathname === '/shared'
+              ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300'
+              : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-700'
+          }`}
+        >
+          <Users className="h-4 w-4" /> Shared with me
         </Link>
         <Link
           to="/bin"

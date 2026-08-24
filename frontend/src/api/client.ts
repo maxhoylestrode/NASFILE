@@ -11,6 +11,10 @@ import type {
   ResumeUploadResponse,
   StorageUsage,
   TrashContents,
+  ShareResource,
+  ListSharesResponse,
+  PublicLinkResponse,
+  SharedWithMeResponse,
 } from './types';
 import { clearSession, getAccessToken, getRefreshToken, saveAccessToken } from './tokenStore';
 
@@ -161,4 +165,19 @@ export const api = {
   permanentlyDeleteFolder: (id: string) => request<void>(`/folders/${id}`, { method: 'DELETE' }),
 
   permanentlyDeleteFile: (id: string) => request<void>(`/files/${id}`, { method: 'DELETE' }),
+
+  createShare: (resourceType: 'folder' | 'file', resourceId: string, email: string) =>
+    request<ShareResource>('/shares', { method: 'POST', body: { resourceType, resourceId, email } }),
+
+  deleteShare: (id: string) => request<void>(`/shares/${id}`, { method: 'DELETE' }),
+
+  listShares: (resourceType: 'folder' | 'file', resourceId: string) =>
+    request<ListSharesResponse>(`/shares?resourceType=${resourceType}&resourceId=${resourceId}`),
+
+  createPublicLink: (fileId: string) =>
+    request<PublicLinkResponse>('/shares/public-link', { method: 'POST', body: { fileId } }),
+
+  deletePublicLink: (fileId: string) => request<void>(`/shares/public-link/${fileId}`, { method: 'DELETE' }),
+
+  getSharedWithMe: () => request<SharedWithMeResponse>('/shares/with-me'),
 };

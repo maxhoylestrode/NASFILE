@@ -152,13 +152,22 @@ export async function deleteObject(key: string): Promise<void> {
   await s3Internal.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
 }
 
-export async function presignDownload(key: string, downloadName: string): Promise<string> {
+export async function presignDownload(
+  key: string,
+  downloadName: string,
+  opts: { disposition?: 'attachment' | 'inline' } = {},
+): Promise<string> {
+  const disposition = opts.disposition ?? 'attachment';
   return getSignedUrl(
     s3Public,
     new GetObjectCommand({
       Bucket: BUCKET,
       Key: key,
-      ResponseContentDisposition: `attachment; filename="${downloadName.replace(/"/g, "'")}"`,
+      // 'inline' is used for public share links meant to be embedded
+      // (an <img>/<iframe> pointed straight at the link) — the browser
+      // renders the content instead of prompting to save it. Normal
+      // authenticated downloads keep the existing 'attachment' default.
+      ResponseContentDisposition: `${disposition}; filename="${downloadName.replace(/"/g, "'")}"`,
     }),
     { expiresIn: config.PRESIGN_DOWNLOAD_TTL_SECONDS },
   );

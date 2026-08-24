@@ -35,6 +35,14 @@ const envSchema = z.object({
   // proxy host setup.
   MINIO_PUBLIC_URL: z.string().url('MINIO_PUBLIC_URL must be a full URL, e.g. https://s3.yourdomain.com'),
 
+  // Public base URL of the app itself (e.g. https://drive.yourdomain.com,
+  // no trailing slash) — used only to build the full URL returned
+  // alongside a public share token, so the response is copy-pasteable
+  // as-is instead of the frontend having to reconstruct it from
+  // window.location (which wouldn't be right for embed-code generation
+  // happening server-side-adjacent contexts anyway).
+  PUBLIC_APP_URL: z.string().url('PUBLIC_APP_URL must be a full URL, e.g. https://drive.yourdomain.com'),
+
   // Multipart upload tuning. Defaults: 100MB parts, 20GiB max file size
   // (~205 parts at the default part size, comfortably under S3's
   // 10,000-part ceiling).
