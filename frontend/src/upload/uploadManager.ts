@@ -187,7 +187,9 @@ async function uploadMissingParts(
     }));
     await api.completeUpload(record.fileId, partsList);
     patch(record.key, { status: 'done' });
-    remove(record.key);
+    // Briefly show the "done" state (checkmark) instead of the row just
+    // vanishing the instant it finishes — then clean it out of the store.
+    setTimeout(() => remove(record.key), 2500);
   } catch (err) {
     const message = err instanceof ApiError ? err.message : 'Failed to finalize upload';
     patch(record.key, { status: 'error', error: message });
