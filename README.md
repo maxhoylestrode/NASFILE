@@ -3,6 +3,10 @@
 Self-hosted Google Drive clone MVP for a homelab. Node.js/Express + TypeScript,
 Postgres, MinIO, invite-only JWT auth. Deployed behind Nginx Proxy Manager.
 
+> Picking this project back up? Start with
+> [`docs/HANDOFF.md`](docs/HANDOFF.md) — current live status, what's done,
+> what to check next. This README is the endpoint-level technical reference.
+
 ## Status
 
 **Session 1 — done:** accounts, invites, auth.
