@@ -22,6 +22,8 @@ interface FileRowProps {
   kind: 'file';
   item: DriveFile;
   onDownload: () => void;
+  /** Photos/videos: clicking the row opens this instead of downloading. Omit to fall back to onDownload. */
+  onPreview?: () => void;
   onRename: () => void;
   onMove: () => void;
   onDelete: () => void;
@@ -37,7 +39,11 @@ export function ItemRow(props: ItemRowProps) {
   const isFolder = props.kind === 'folder';
   const isPendingFile = props.kind === 'file' && props.item.status === 'pending';
   const FileIconComp = !isFolder ? getFileIcon(props.item.name) : null;
-  const openHandler = isFolder ? () => props.onOpen(props.item.id) : props.kind === 'file' ? props.onDownload : undefined;
+  const openHandler = isFolder
+    ? () => props.onOpen(props.item.id)
+    : props.kind === 'file'
+      ? (props.onPreview ?? props.onDownload)
+      : undefined;
   const canManage = !props.readOnly && !(isFolder && props.item.isRoot);
 
   if (props.view === 'grid') {

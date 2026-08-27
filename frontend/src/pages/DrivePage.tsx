@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { List, LayoutGrid, FolderOpen, Download, Share2, Pencil, FolderInput, Trash2 } from 'lucide-react';
+import { List, LayoutGrid, FolderOpen, Download, Share2, Pencil, FolderInput, Trash2, Eye } from 'lucide-react';
 import { api, ApiError } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { Breadcrumb } from '../components/Breadcrumb';
@@ -8,11 +8,13 @@ import { ItemRow } from '../components/ItemRow';
 import { PromptModal } from '../components/PromptModal';
 import { MoveModal } from '../components/MoveModal';
 import { ShareModal } from '../components/ShareModal';
+import { PreviewModal } from '../components/PreviewModal';
 import { UploadPanel } from '../components/UploadPanel';
 import { Sidebar } from '../components/Sidebar';
 import { TopBar } from '../components/TopBar';
 import { ContextMenu, type ContextMenuItem } from '../components/ContextMenu';
 import { useViewMode } from '../lib/useViewMode';
+import { getPreviewKind, type PreviewKind } from '../lib/mediaType';
 import { startUpload } from '../upload/uploadManager';
 import type { DriveFile, Folder } from '../api/types';
 
@@ -39,6 +41,7 @@ export function DrivePage() {
   const currentId = path[path.length - 1].id;
   const [modal, setModal] = useState<ModalState>(null);
   const [contextTarget, setContextTarget] = useState<ContextTarget | null>(null);
+  const [preview, setPreview] = useState<{ file: DriveFile; kind: PreviewKind } | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const { data, isLoading, error } = useQuery({
@@ -123,6 +126,10 @@ export function DrivePage() {
     if (kind === 'folder') {
       items.push({ label: 'Open', icon: FolderOpen, onClick: () => openFolder(item) });
     } else {
+      const previewKind = getPreviewKind(item.name);
+      if (item.status === 'complete' && previewKind) {
+        items.push({ label: 'Preview', icon: Eye, onClick: () => setPreview({ file: item, kind: previewKind }) });
+      }
       if (item.status === 'complete') {
         items.push({ label: 'Download', icon: Download, onClick: () => handleDownload(item) });
       }
@@ -242,20 +249,24 @@ export function DrivePage() {
                       onContextMenu={(e) => openFolderContextMenu(e, folder)}
                     />
                   ))}
-                  {data.files.map((file) => (
-                    <ItemRow
-                      key={file.id}
-                      kind="file"
-                      item={file}
-                      view={view}
-                      onDownload={() => handleDownload(file)}
-                      onRename={() => setModal({ type: 'rename-file', file })}
-                      onMove={() => setModal({ type: 'move-file', file })}
-                      onDelete={() => runAction(() => api.deleteFile(file.id))}
-                      onShare={() => setModal({ type: 'share-file', file })}
-                      onContextMenu={(e) => openFileContextMenu(e, file)}
-                    />
-                  ))}
+                  {data.files.map((file) => {
+                    const previewKind = getPreviewKind(file.name);
+                    return (
+                      <ItemRow
+                        key={file.id}
+                        kind="file"
+                        item={file}
+                        view={view}
+                        onDownload={() => handleDownload(file)}
+                        onPreview={previewKind ? () => setPreview({ file, kind: previewKind }) : undefined}
+                        onRename={() => setModal({ type: 'rename-file', file })}
+                        onMove={() => setModal({ type: 'move-file', file })}
+                        onDelete={() => runAction(() => api.deleteFile(file.id))}
+                        onShare={() => setModal({ type: 'share-file', file })}
+                        onContextMenu={(e) => openFileContextMenu(e, file)}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -279,6 +290,8 @@ export function DrivePage() {
           onClose={() => setContextTarget(null)}
         />
       )}
+
+      {preview && <PreviewModal file={preview.file} kind={preview.kind} onClose={() => setPreview(null)} />}
 
       {modal?.type === 'new-folder' && (
         <PromptModal

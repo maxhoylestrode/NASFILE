@@ -1,3 +1,5 @@
+import { IMAGE_EXT, VIDEO_EXT, AUDIO_EXT, extOf } from './mediaType';
+
 /**
  * Best-effort embeddable HTML for a public share link, based on file
  * extension. Only image, PDF, video, and audio have a native browser
@@ -6,12 +8,8 @@
  * to a plain link. This mirrors exactly what was explained in-app: the
  * link always works for a direct click, only some types actually embed.
  */
-const IMAGE_EXT = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'avif'];
-const VIDEO_EXT = ['mp4', 'webm', 'mov', 'm4v'];
-const AUDIO_EXT = ['mp3', 'wav', 'flac', 'aac', 'm4a', 'ogg'];
-
 export function buildEmbedCode(url: string, filename: string): { code: string; embeddable: boolean } {
-  const ext = filename.includes('.') ? filename.split('.').pop()!.toLowerCase() : '';
+  const ext = extOf(filename);
 
   if (IMAGE_EXT.includes(ext)) {
     return { code: `<img src="${url}" alt="${escapeAttr(filename)}" style="max-width:100%">`, embeddable: true };

@@ -6,8 +6,10 @@ import { useAuth } from '../auth/AuthContext';
 import { Sidebar } from '../components/Sidebar';
 import { TopBar } from '../components/TopBar';
 import { ItemRow } from '../components/ItemRow';
+import { PreviewModal } from '../components/PreviewModal';
 import { UploadPanel } from '../components/UploadPanel';
 import { getFileIcon } from '../lib/fileIcons';
+import { getPreviewKind, type PreviewKind } from '../lib/mediaType';
 import type { DriveFile, Folder } from '../api/types';
 
 type Crumb = { id: string; name: string };
@@ -16,6 +18,7 @@ export function SharedWithMePage() {
   const { user, logout } = useAuth();
   const [path, setPath] = useState<Crumb[]>([]); // empty = top-level "Shared with me" list
   const [actionError, setActionError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ file: DriveFile; kind: PreviewKind } | null>(null);
   const insideSharedFolder = path.length > 0;
   const currentId = insideSharedFolder ? path[path.length - 1].id : null;
 
@@ -112,10 +115,11 @@ export function SharedWithMePage() {
                   ))}
                   {topLevel.data?.files.map((file) => {
                     const { icon: Icon, color } = getFileIcon(file.name);
+                    const previewKind = getPreviewKind(file.name);
                     return (
                       <button
                         key={file.id}
-                        onClick={() => handleDownload(file)}
+                        onClick={() => (previewKind ? setPreview({ file, kind: previewKind }) : handleDownload(file))}
                         className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors duration-150 hover:bg-slate-50 dark:hover:bg-slate-700/50"
                       >
                         <Icon className={`h-5 w-5 shrink-0 ${color}`} />
@@ -157,19 +161,23 @@ export function SharedWithMePage() {
                       onShare={() => {}}
                     />
                   ))}
-                  {nested.data?.files.map((file) => (
-                    <ItemRow
-                      key={file.id}
-                      kind="file"
-                      item={file}
-                      readOnly
-                      onDownload={() => handleDownload(file)}
-                      onRename={() => {}}
-                      onMove={() => {}}
-                      onDelete={() => {}}
-                      onShare={() => {}}
-                    />
-                  ))}
+                  {nested.data?.files.map((file) => {
+                    const previewKind = getPreviewKind(file.name);
+                    return (
+                      <ItemRow
+                        key={file.id}
+                        kind="file"
+                        item={file}
+                        readOnly
+                        onDownload={() => handleDownload(file)}
+                        onPreview={previewKind ? () => setPreview({ file, kind: previewKind }) : undefined}
+                        onRename={() => {}}
+                        onMove={() => {}}
+                        onDelete={() => {}}
+                        onShare={() => {}}
+                      />
+                    );
+                  })}
                 </>
               )}
             </div>
@@ -178,6 +186,8 @@ export function SharedWithMePage() {
       </div>
 
       <UploadPanel />
+
+      {preview && <PreviewModal file={preview.file} kind={preview.kind} onClose={() => setPreview(null)} />}
     </div>
   );
 }
