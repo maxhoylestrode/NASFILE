@@ -379,6 +379,21 @@ for those types, and a plain `<a href>` fallback (flagged as
 non-embeddable) for anything else, like Word docs, that browsers won't
 render inline from a URL.
 
+### In-app photo/video preview
+
+Clicking an image or video (in the drive view, grid view, right-click
+menu, or Shared with me) opens a full-screen preview instead of
+downloading — `frontend/src/components/PreviewModal.tsx` renders an
+`<img>` or `<video controls autoPlay>` using the same presigned URL a
+normal download uses (`Content-Disposition: attachment` doesn't stop a
+browser from loading it as an `<img>`/`<video>` subresource — that
+header only matters for top-level navigation). No backend changes.
+Everything else (PDF, audio, Word/Excel/etc.) still just downloads on
+click, unchanged. `frontend/src/lib/mediaType.ts` holds the single
+source of truth for which extensions get a native in-browser renderer —
+`embedCode.ts` imports from it too, instead of keeping its own copy of
+the same extension lists.
+
 ### Exposing MinIO for direct browser upload/download
 
 Presigned URLs are signed for whatever host is configured as

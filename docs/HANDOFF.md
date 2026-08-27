@@ -1,6 +1,6 @@
 # Silo — project handoff / status
 
-Last updated: 2026-08-25, end of the live-deployment + full visual redesign session.
+Last updated: 2026-08-27, after adding in-app photo/video preview.
 
 This doc is the "what's actually going on" summary. For endpoint-by-endpoint
 technical reference, see the main [README.md](../README.md) — it's kept
@@ -74,6 +74,7 @@ a real running app boot, not just unit tests), and pushed to `main`.
 | Grid/list view toggle + right-click context menu | done | Phase 3 |
 | Upload panel polish | done | Phase 4 |
 | Restyled login/accept-invite/admin-invites pages | done | Phase 5 |
+| In-app photo/video preview | done | pure frontend, no backend/DB change |
 
 Nothing is currently in progress. The visual redesign (Phases 1-5) is
 complete.
@@ -128,6 +129,17 @@ the app is live and reachable, especially:
 - the new right-click context menu and grid/list toggle
 - kill-tab-mid-upload-and-resume (the one thing that's mattered most
   since Session 3 and still has never been machine-verified)
+
+## Database caution
+
+**The database is live in production with real data.** Any future
+migration must be additive/backward-compatible (new nullable columns,
+new tables) — never a destructive change without Max's explicit
+go-ahead first. Test every migration against the sandbox's
+embedded-postgres before it's ever called ready to deploy. Never run ad
+hoc SQL/scripts directly against the live DB without flagging it and
+getting confirmation — that's a step above the normal test-then-deploy
+flow used for everything else.
 
 ## Next steps
 
