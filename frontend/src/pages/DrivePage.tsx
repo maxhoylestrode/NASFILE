@@ -9,9 +9,7 @@ import { PromptModal } from '../components/PromptModal';
 import { MoveModal } from '../components/MoveModal';
 import { ShareModal } from '../components/ShareModal';
 import { PreviewModal } from '../components/PreviewModal';
-import { UploadPanel } from '../components/UploadPanel';
-import { Sidebar } from '../components/Sidebar';
-import { TopBar } from '../components/TopBar';
+import { AppShell } from '../components/AppShell';
 import { ContextMenu, type ContextMenuItem } from '../components/ContextMenu';
 import { useViewMode } from '../lib/useViewMode';
 import { getPreviewKind, type PreviewKind } from '../lib/mediaType';
@@ -31,7 +29,7 @@ type ModalState =
 type ContextTarget = { x: number; y: number } & ({ kind: 'folder'; item: Folder } | { kind: 'file'; item: DriveFile });
 
 export function DrivePage() {
-  const { user, rootFolderId, logout } = useAuth();
+  const { rootFolderId } = useAuth();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -171,18 +169,8 @@ export function DrivePage() {
   })();
 
   return (
-    <div className="flex h-screen bg-slate-50 transition-colors duration-200 dark:bg-slate-900">
-      <Sidebar
-        onNewFolder={() => setModal({ type: 'new-folder' })}
-        onUploadClick={() => fileInputRef.current?.click()}
-        isAdmin={user?.isAdmin}
-      />
-
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <TopBar email={user?.email} onLogout={logout} />
-
-        <main className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="mx-auto max-w-4xl">
+    <>
+    <AppShell onNewFolder={() => setModal({ type: 'new-folder' })} onUploadClick={() => fileInputRef.current?.click()}>
             <div className="mb-4 flex items-center justify-between gap-2">
               <Breadcrumb path={path} onNavigate={navigateTo} />
               <div className="flex shrink-0 items-center gap-1 rounded-md border border-slate-200 p-0.5 dark:border-slate-700">
@@ -277,17 +265,13 @@ export function DrivePage() {
                 </div>
               )}
             </div>
-          </div>
-        </main>
-      </div>
+    </AppShell>
 
       {dragOver && (
         <div className="pointer-events-none fixed inset-0 z-30 flex animate-fade-in items-center justify-center border-4 border-dashed border-indigo-400 bg-indigo-50/70 dark:bg-indigo-950/60">
           <p className="animate-scale-in text-lg font-medium text-indigo-700 dark:text-indigo-300">Drop to upload</p>
         </div>
       )}
-
-      <UploadPanel />
 
       {contextTarget && (
         <ContextMenu
@@ -369,6 +353,6 @@ export function DrivePage() {
           onClose={() => setModal(null)}
         />
       )}
-    </div>
+    </>
   );
 }

@@ -2,13 +2,10 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Folder as FolderIcon, Users } from 'lucide-react';
 import { api, ApiError } from '../api/client';
-import { useAuth } from '../auth/AuthContext';
-import { Sidebar } from '../components/Sidebar';
-import { TopBar } from '../components/TopBar';
+import { AppShell } from '../components/AppShell';
 import { ItemRow } from '../components/ItemRow';
 import { PreviewModal } from '../components/PreviewModal';
 import { FileThumbnail } from '../components/FileThumbnail';
-import { UploadPanel } from '../components/UploadPanel';
 import { getPreviewKind, type PreviewKind } from '../lib/mediaType';
 import type { DriveFile, Folder } from '../api/types';
 
@@ -26,7 +23,6 @@ function toMediaItems(files: DriveFile[] | undefined): MediaItem[] {
 type Crumb = { id: string; name: string };
 
 export function SharedWithMePage() {
-  const { user, logout } = useAuth();
   const [path, setPath] = useState<Crumb[]>([]); // empty = top-level "Shared with me" list
   const [actionError, setActionError] = useState<string | null>(null);
   const [previewStart, setPreviewStart] = useState<DriveFile | null>(null);
@@ -60,14 +56,8 @@ export function SharedWithMePage() {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 transition-colors duration-200 dark:bg-slate-900">
-      <Sidebar isAdmin={user?.isAdmin} />
-
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <TopBar email={user?.email} onLogout={logout} />
-
-        <main className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="mx-auto max-w-4xl">
+    <>
+    <AppShell>
             <div className="mb-4">
               <nav className="flex flex-wrap items-center gap-1 text-sm text-slate-500 dark:text-slate-400">
                 <button
@@ -193,11 +183,7 @@ export function SharedWithMePage() {
                 </>
               )}
             </div>
-          </div>
-        </main>
-      </div>
-
-      <UploadPanel />
+    </AppShell>
 
       {previewStart && (
         <PreviewModal
@@ -209,6 +195,6 @@ export function SharedWithMePage() {
           onClose={() => setPreviewStart(null)}
         />
       )}
-    </div>
+    </>
   );
 }

@@ -2,11 +2,8 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Folder as FolderIcon, RotateCcw, Trash2 } from 'lucide-react';
 import { api, ApiError } from '../api/client';
-import { useAuth } from '../auth/AuthContext';
-import { Sidebar } from '../components/Sidebar';
-import { TopBar } from '../components/TopBar';
+import { AppShell } from '../components/AppShell';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { UploadPanel } from '../components/UploadPanel';
 import { formatDate } from '../lib/format';
 import { getFileIcon } from '../lib/fileIcons';
 import type { DriveFile, Folder } from '../api/types';
@@ -14,7 +11,6 @@ import type { DriveFile, Folder } from '../api/types';
 type PermanentDeleteTarget = { kind: 'folder'; item: Folder } | { kind: 'file'; item: DriveFile } | null;
 
 export function BinPage() {
-  const { user, logout } = useAuth();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<PermanentDeleteTarget>(null);
@@ -63,14 +59,8 @@ export function BinPage() {
   const isEmpty = data && data.folders.length === 0 && data.files.length === 0;
 
   return (
-    <div className="flex h-screen bg-slate-50 transition-colors duration-200 dark:bg-slate-900">
-      <Sidebar isAdmin={user?.isAdmin} />
-
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <TopBar email={user?.email} onLogout={logout} />
-
-        <main className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="mx-auto max-w-4xl">
+    <>
+    <AppShell>
             <div className="mb-4">
               <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Bin</h1>
               <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -149,11 +139,7 @@ export function BinPage() {
                 );
               })}
             </div>
-          </div>
-        </main>
-      </div>
-
-      <UploadPanel />
+    </AppShell>
 
       {confirmDelete && (
         <ConfirmDialog
@@ -165,6 +151,6 @@ export function BinPage() {
           onConfirm={permanentlyDelete}
         />
       )}
-    </div>
+    </>
   );
 }

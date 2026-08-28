@@ -454,6 +454,36 @@ sandbox testing, and reproduced in sandbox afterward (12 concurrent
 requests against 6 videos + 6 images, confirmed throttled to 2-at-a-time
 and all still succeeding) before being called fixed.
 
+### Mobile responsive layout
+
+Below the `md` breakpoint the sidebar becomes an off-canvas drawer
+instead of always eating ~240px of a phone-width screen: hidden by
+default (`-translate-x-full`, `fixed`), toggled open by a hamburger
+button in `TopBar.tsx` (`md:hidden`), dismissed by tapping the backdrop,
+picking a nav destination, or navigating to a different route — closing
+on route change is done as a render-time state adjustment (`if
+(location.pathname !== lastPathname) { ...; setNavOpen(false); }`)
+rather than a `useEffect`, since it's really a derived reset, not a
+synchronization with an external system, and doing it as an effect trips
+the `set-state-in-effect` lint rule for no benefit. At `md:` and above
+the drawer classes are overridden back to a normal in-flow
+`md:static md:translate-x-0` sidebar, unchanged from before.
+
+`frontend/src/components/AppShell.tsx` is a new shared shell (Sidebar +
+TopBar + scrollable main + UploadPanel) that `DrivePage`, `BinPage`,
+`SharedWithMePage`, and `AdminInvitesPage` all render into, instead of
+each page separately laying out its own Sidebar/TopBar/UploadPanel — the
+mobile-drawer logic and the `navOpen` state live in exactly one place.
+
+Two more touch-specific fixes: `ItemRow`'s per-row action icons
+(download/share/etc.) were hover-only (`opacity-0
+group-hover:opacity-100`), which is unreachable on a touchscreen — that
+row is now `hidden ... md:flex`, and a mobile-only "more" kebab button
+(`md:hidden`) opens the same context menu instead. `UploadPanel` was a
+fixed `w-80` pinned to the bottom-right, which overflowed a phone's
+width — it's now `left-4 right-4` (full width minus margins) below
+`sm:`, reverting to the original fixed `w-80` at `sm:` and up.
+
 ### Exposing MinIO for direct browser upload/download
 
 Presigned URLs are signed for whatever host is configured as

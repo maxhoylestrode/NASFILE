@@ -9,9 +9,11 @@ interface SidebarProps {
   onNewFolder?: () => void;
   onUploadClick?: () => void;
   isAdmin?: boolean;
+  /** Called whenever a nav destination is picked — lets the mobile drawer close itself. */
+  onNavigate?: () => void;
 }
 
-export function Sidebar({ onNewFolder, onUploadClick, isAdmin }: SidebarProps) {
+export function Sidebar({ onNewFolder, onUploadClick, isAdmin, onNavigate }: SidebarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -32,7 +34,7 @@ export function Sidebar({ onNewFolder, onUploadClick, isAdmin }: SidebarProps) {
   }, [menuOpen]);
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-slate-200 bg-white px-3 py-4 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800">
+    <aside className="flex h-full w-60 shrink-0 flex-col overflow-y-auto border-r border-slate-200 bg-white px-3 py-4 transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800">
       <div className="mb-5 flex items-center gap-2 px-2">
         <HardDrive className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
         <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">Silo</span>
@@ -74,6 +76,7 @@ export function Sidebar({ onNewFolder, onUploadClick, isAdmin }: SidebarProps) {
       <nav className="flex flex-1 flex-col gap-0.5">
         <Link
           to="/"
+          onClick={onNavigate}
           className={`flex items-center gap-3 rounded-full px-3 py-2 text-sm font-medium transition-colors duration-150 ${
             location.pathname === '/'
               ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300'
@@ -84,6 +87,7 @@ export function Sidebar({ onNewFolder, onUploadClick, isAdmin }: SidebarProps) {
         </Link>
         <Link
           to="/shared"
+          onClick={onNavigate}
           className={`flex items-center gap-3 rounded-full px-3 py-2 text-sm font-medium transition-colors duration-150 ${
             location.pathname === '/shared'
               ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300'
@@ -94,6 +98,7 @@ export function Sidebar({ onNewFolder, onUploadClick, isAdmin }: SidebarProps) {
         </Link>
         <Link
           to="/bin"
+          onClick={onNavigate}
           className={`flex items-center gap-3 rounded-full px-3 py-2 text-sm font-medium transition-colors duration-150 ${
             location.pathname === '/bin'
               ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300'
@@ -105,6 +110,7 @@ export function Sidebar({ onNewFolder, onUploadClick, isAdmin }: SidebarProps) {
         {isAdmin && (
           <Link
             to="/admin/invites"
+            onClick={onNavigate}
             className={`flex items-center gap-3 rounded-full px-3 py-2 text-sm font-medium transition-colors duration-150 hover:bg-slate-50 dark:hover:bg-slate-700 ${
               location.pathname === '/admin/invites'
                 ? 'text-indigo-700 dark:text-indigo-300'

@@ -70,7 +70,7 @@ export function UploadPanel() {
       : `${uploads.length} upload${uploads.length === 1 ? '' : 's'}`;
 
   return (
-    <div className="fixed bottom-4 right-4 z-40 w-80 animate-slide-up overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800">
+    <div className="fixed bottom-4 left-4 right-4 z-40 animate-slide-up overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg transition-colors duration-200 dark:border-slate-700 dark:bg-slate-800 sm:left-auto sm:w-80">
       <button
         onClick={() => setCollapsed((c) => !c)}
         className="flex w-full items-center justify-between gap-2 border-b border-slate-100 px-3 py-2 text-left transition-colors duration-150 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-700/50"

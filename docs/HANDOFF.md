@@ -1,6 +1,6 @@
 # Silo — project handoff / status
 
-Last updated: 2026-08-28, after fixing a thumbnail-generation RAM issue found on the live NAS.
+Last updated: 2026-08-28, after adding a responsive mobile layout (off-canvas sidebar drawer, touch-accessible row actions, responsive upload panel).
 
 This doc is the "what's actually going on" summary. For endpoint-by-endpoint
 technical reference, see the main [README.md](../README.md) — it's kept
@@ -82,9 +82,13 @@ a real running app boot, not just unit tests), and pushed to `main`.
 | Restyled login/accept-invite/admin-invites pages | done | Phase 5 |
 | In-app photo/video preview + next/prev navigation | done | |
 | Real server-generated thumbnails (images + video) | done | new system dependency: ffmpeg |
+| Responsive mobile layout | done | off-canvas sidebar drawer, touch-friendly ItemRow actions, responsive UploadPanel |
 
 Nothing is currently in progress. The visual redesign (Phases 1-5) is
-complete.
+complete, and the app now has a proper mobile layout (previously it just
+rendered the desktop layout shrunk down, which Max flagged as broken on
+real phone usage — off-canvas sidebar, touch-reachable row actions, and
+a non-overflowing upload panel below the `md` breakpoint).
 
 ## Sharing — the newest feature, worth understanding fully
 

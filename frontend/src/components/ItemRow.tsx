@@ -116,7 +116,10 @@ export function ItemRow(props: ItemRowProps) {
         </span>
       </button>
 
-      <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+      {/* Desktop: hover-reveal action row. Hidden on mobile — there's no
+          hover state on touch, so these would otherwise be unreachable;
+          the "more" kebab below covers the same ground on small screens. */}
+      <div className="hidden shrink-0 items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 md:flex">
         {props.kind === 'file' && props.item.status === 'complete' && (
           <button
             title="Download"
@@ -159,6 +162,19 @@ export function ItemRow(props: ItemRowProps) {
           </>
         )}
       </div>
+
+      {/* Mobile: a persistent "more" button opens the same context menu
+          that desktop reaches via right-click, since there's no hover
+          and no right-click on a touchscreen. */}
+      {props.onContextMenu && (
+        <button
+          title="More"
+          onClick={props.onContextMenu}
+          className="shrink-0 rounded p-1.5 text-slate-400 transition-colors duration-150 hover:bg-slate-100 dark:hover:bg-slate-700 md:hidden"
+        >
+          <MoreVertical className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 }
