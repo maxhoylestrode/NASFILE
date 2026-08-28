@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { X, Download, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api, ApiError } from '../api/client';
 import type { DriveFile } from '../api/types';
@@ -29,11 +29,43 @@ export function PreviewModal({ items, startIndex, onClose }: PreviewModalProps) 
   const [index, setIndex] = useState(startIndex);
   const [url, setUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   const current = items[index];
 
   const goPrev = () => setIndex((i) => (i - 1 + items.length) % items.length);
   const goNext = () => setIndex((i) => (i + 1) % items.length);
+
+  // Swipe left/right to move between items on touch devices. Ignored
+  // when there's only one item, and ignored for a touch that starts
+  // low in the frame on a video — that's someone dragging the native
+  // scrub bar, not swiping to navigate.
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (items.length <= 1) return;
+    const t = e.touches[0];
+    if (current?.kind === 'video') {
+      const rect = e.currentTarget.getBoundingClientRect();
+      if (t.clientY > rect.bottom - 56) {
+        touchStart.current = null;
+        return;
+      }
+    }
+    touchStart.current = { x: t.clientX, y: t.clientY };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start || items.length <= 1) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    const SWIPE_THRESHOLD = 50;
+    if (Math.abs(dx) > SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx > 0) goPrev();
+      else goNext();
+    }
+  };
 
   useEffect(() => {
     if (!current) return;
@@ -104,6 +136,8 @@ export function PreviewModal({ items, startIndex, onClose }: PreviewModalProps) 
       <div
         className="relative flex flex-1 items-center justify-center overflow-hidden px-4 pb-6"
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
       >
         {items.length > 1 && (
           <button

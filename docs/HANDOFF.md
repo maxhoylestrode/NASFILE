@@ -1,6 +1,6 @@
 # Silo — project handoff / status
 
-Last updated: 2026-08-28, after adding a responsive mobile layout (off-canvas sidebar drawer, touch-accessible row actions, responsive upload panel).
+Last updated: 2026-08-28, after adding swipe-to-navigate to the photo/video preview lightbox on touch devices.
 
 This doc is the "what's actually going on" summary. For endpoint-by-endpoint
 technical reference, see the main [README.md](../README.md) — it's kept
@@ -83,6 +83,7 @@ a real running app boot, not just unit tests), and pushed to `main`.
 | In-app photo/video preview + next/prev navigation | done | |
 | Real server-generated thumbnails (images + video) | done | new system dependency: ffmpeg |
 | Responsive mobile layout | done | off-canvas sidebar drawer, touch-friendly ItemRow actions, responsive UploadPanel |
+| Swipe navigation in preview lightbox | done | touch-only, video scrub bar excluded from swipe detection |
 
 Nothing is currently in progress. The visual redesign (Phases 1-5) is
 complete, and the app now has a proper mobile layout (previously it just

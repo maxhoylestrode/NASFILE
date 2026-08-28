@@ -403,7 +403,16 @@ other image/video in the same list (current folder, or the current
 Shared-with-me view) — `PreviewModal` takes an ordered `items` array plus
 a `startIndex` rather than a single file, wraps around at either end, and
 just swaps which player renders (`<img>` vs `<video>`) as you move
-between an image and a video.
+between an image and a video. On touch devices you can also swipe
+left/right anywhere over the media to move prev/next — `onTouchStart`/
+`onTouchEnd` on the media container measure the horizontal distance
+between the two touch points and treat it as a swipe once it clears a
+50px threshold and is more horizontal than vertical (so a vertical
+scroll/pinch gesture isn't misread as navigation). For a video, a touch
+starting in roughly the bottom 56px of the frame is assumed to be a drag
+on the native scrub bar and is deliberately excluded from swipe
+handling, so dragging to seek doesn't accidentally jump to the next
+file.
 
 **Thumbnails** (`GET /files/:id/thumbnail-url`, `src/lib/thumbnails.ts`)
 are real server-generated images, not client-side scaling — deliberately
