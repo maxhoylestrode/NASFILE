@@ -440,6 +440,20 @@ cleaned up alongside the original on permanent delete (`DELETE
 /files/:id` second call) and by `npm run purge-trash`, same pattern as
 the original object.
 
+**Memory:** opening a folder full of never-thumbnailed files fires one
+generation request per visible file. The source object is streamed
+straight into `sharp`/`ffmpeg` (`getObjectStream` in `storage.ts`) —
+never buffered whole in memory first — and `acquireThumbnailSlot` in
+`src/lib/thumbnails.ts` caps actual generation work at 2 concurrent
+regardless of how many requests land at once; everything past that just
+waits its turn. This exists because the first version buffered full
+source files (videos especially) in memory with no concurrency limit,
+which maxed out RAM on the real NAS the first time it ran against a
+real photo/video library — caught from Max's own live usage, not from
+sandbox testing, and reproduced in sandbox afterward (12 concurrent
+requests against 6 videos + 6 images, confirmed throttled to 2-at-a-time
+and all still succeeding) before being called fixed.
+
 ### Exposing MinIO for direct browser upload/download
 
 Presigned URLs are signed for whatever host is configured as

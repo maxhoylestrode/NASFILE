@@ -19,10 +19,10 @@ import {
   abortMultipartUpload,
   deleteObject,
   presignDownload,
-  getObjectBuffer,
+  getObjectStream,
   putObject,
 } from '../storage';
-import { generateImageThumbnail, generateVideoThumbnail, withTempFile } from '../lib/thumbnails';
+import { generateImageThumbnail, generateVideoThumbnail, acquireThumbnailSlot } from '../lib/thumbnails';
 import { logger } from '../logger';
 
 export const filesRouter = Router();
@@ -256,15 +256,22 @@ filesRouter.get(
       return;
     }
 
-    // thumbnail_status === 'none' — generate it now, once. Any failure
-    // here (corrupt file, unsupported codec even for ffmpeg, etc.) is
-    // caught and recorded as 'failed' rather than surfacing a 500 —
-    // the frontend just falls back to the plain file-type icon.
+    // thumbnail_status === 'none' — generate it now, once. Bounded by
+    // acquireThumbnailSlot so at most a couple of these run at once
+    // regardless of how many files a folder view requests simultaneously
+    // (a full folder of unthumbnailed videos used to fire one generation
+    // per visible file in parallel, each streaming a whole video through
+    // at once — fine individually, but concurrently it's what maxed out
+    // RAM on the NAS the first time this ran against a real library).
+    // Any failure here (corrupt file, unsupported codec even for ffmpeg,
+    // etc.) is caught and recorded as 'failed' rather than surfacing a
+    // 500 — the frontend just falls back to the plain file-type icon.
+    const release = await acquireThumbnailSlot();
     try {
-      const sourceBuffer = await getObjectBuffer(file.storage_key);
+      const sourceStream = await getObjectStream(file.storage_key);
       const thumbBuffer = isImage
-        ? await generateImageThumbnail(sourceBuffer)
-        : await withTempFile(sourceBuffer, extFromMime(mime), (path) => generateVideoThumbnail(path));
+        ? await generateImageThumbnail(sourceStream)
+        : await generateVideoThumbnail(sourceStream, extFromMime(mime));
 
       const thumbKey = buildThumbnailKey(file.owner_id, file.id);
       await putObject(thumbKey, thumbBuffer, 'image/jpeg');
@@ -284,6 +291,8 @@ filesRouter.get(
         .query(`UPDATE files SET thumbnail_status = 'failed' WHERE id = $1`, [file.id])
         .catch(() => undefined);
       res.status(200).json({ url: null, status: 'failed' });
+    } finally {
+      release();
     }
   }),
 );

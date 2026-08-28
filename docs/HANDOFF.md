@@ -1,6 +1,6 @@
 # Silo — project handoff / status
 
-Last updated: 2026-08-28, after adding server-generated thumbnails + preview navigation.
+Last updated: 2026-08-28, after fixing a thumbnail-generation RAM issue found on the live NAS.
 
 This doc is the "what's actually going on" summary. For endpoint-by-endpoint
 technical reference, see the main [README.md](../README.md) — it's kept
