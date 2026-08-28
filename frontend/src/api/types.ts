@@ -69,6 +69,11 @@ export interface DownloadUrlResponse {
   expiresInSeconds: number;
 }
 
+export interface ThumbnailUrlResponse {
+  url: string | null;
+  status: 'ready' | 'unavailable' | 'unsupported' | 'failed';
+}
+
 export interface CreateInviteResponse {
   id: string;
   token: string;

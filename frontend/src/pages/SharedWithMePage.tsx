@@ -7,10 +7,21 @@ import { Sidebar } from '../components/Sidebar';
 import { TopBar } from '../components/TopBar';
 import { ItemRow } from '../components/ItemRow';
 import { PreviewModal } from '../components/PreviewModal';
+import { FileThumbnail } from '../components/FileThumbnail';
 import { UploadPanel } from '../components/UploadPanel';
-import { getFileIcon } from '../lib/fileIcons';
 import { getPreviewKind, type PreviewKind } from '../lib/mediaType';
 import type { DriveFile, Folder } from '../api/types';
+
+type MediaItem = { file: DriveFile; kind: PreviewKind };
+
+function toMediaItems(files: DriveFile[] | undefined): MediaItem[] {
+  return (files ?? [])
+    .map((file) => {
+      const kind = getPreviewKind(file.name);
+      return kind ? { file, kind } : null;
+    })
+    .filter((x): x is MediaItem => x !== null);
+}
 
 type Crumb = { id: string; name: string };
 
@@ -18,7 +29,7 @@ export function SharedWithMePage() {
   const { user, logout } = useAuth();
   const [path, setPath] = useState<Crumb[]>([]); // empty = top-level "Shared with me" list
   const [actionError, setActionError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<{ file: DriveFile; kind: PreviewKind } | null>(null);
+  const [previewStart, setPreviewStart] = useState<DriveFile | null>(null);
   const insideSharedFolder = path.length > 0;
   const currentId = insideSharedFolder ? path[path.length - 1].id : null;
 
@@ -33,6 +44,8 @@ export function SharedWithMePage() {
     queryFn: () => api.getFolder(currentId!),
     enabled: insideSharedFolder,
   });
+
+  const mediaItems = insideSharedFolder ? toMediaItems(nested.data?.files) : toMediaItems(topLevel.data?.files);
 
   const openFolder = (folder: Folder) => setPath((p) => [...p, { id: folder.id, name: folder.name }]);
   const navigateTo = (index: number) => setPath((p) => (index < 0 ? [] : p.slice(0, index + 1)));
@@ -114,15 +127,14 @@ export function SharedWithMePage() {
                     </button>
                   ))}
                   {topLevel.data?.files.map((file) => {
-                    const { icon: Icon, color } = getFileIcon(file.name);
                     const previewKind = getPreviewKind(file.name);
                     return (
                       <button
                         key={file.id}
-                        onClick={() => (previewKind ? setPreview({ file, kind: previewKind }) : handleDownload(file))}
+                        onClick={() => (previewKind ? setPreviewStart(file) : handleDownload(file))}
                         className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors duration-150 hover:bg-slate-50 dark:hover:bg-slate-700/50"
                       >
-                        <Icon className={`h-5 w-5 shrink-0 ${color}`} />
+                        <FileThumbnail file={file} size="sm" />
                         <span className="min-w-0 flex-1 truncate text-sm text-slate-800 dark:text-slate-100">
                           {file.name}
                         </span>
@@ -170,7 +182,7 @@ export function SharedWithMePage() {
                         item={file}
                         readOnly
                         onDownload={() => handleDownload(file)}
-                        onPreview={previewKind ? () => setPreview({ file, kind: previewKind }) : undefined}
+                        onPreview={previewKind ? () => setPreviewStart(file) : undefined}
                         onRename={() => {}}
                         onMove={() => {}}
                         onDelete={() => {}}
@@ -187,7 +199,16 @@ export function SharedWithMePage() {
 
       <UploadPanel />
 
-      {preview && <PreviewModal file={preview.file} kind={preview.kind} onClose={() => setPreview(null)} />}
+      {previewStart && (
+        <PreviewModal
+          items={mediaItems}
+          startIndex={Math.max(
+            0,
+            mediaItems.findIndex((m) => m.file.id === previewStart.id),
+          )}
+          onClose={() => setPreviewStart(null)}
+        />
+      )}
     </div>
   );
 }

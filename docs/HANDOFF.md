@@ -1,6 +1,6 @@
 # Silo — project handoff / status
 
-Last updated: 2026-08-27, after adding in-app photo/video preview.
+Last updated: 2026-08-28, after adding server-generated thumbnails + preview navigation.
 
 This doc is the "what's actually going on" summary. For endpoint-by-endpoint
 technical reference, see the main [README.md](../README.md) — it's kept
@@ -42,15 +42,21 @@ sudo -u drive-clone -H bash -c "cd /opt/drive-clone && npm run build:all && npm 
 systemctl restart drive-clone
 ```
 
-**Action needed on the live server:** `PUBLIC_APP_URL` is a new required
-env var (added this session, no default — see Sharing below) and is
-almost certainly not in the live `.env` yet. `deploy.sh` will now stop
-cleanly with a clear message if it's missing, rather than deploying
-silently broken. Add it before the next deploy:
+**Action needed on the live server (one-time):** `ffmpeg` must be
+installed on the NAS itself before the thumbnails feature works for
+videos (images work regardless — `sharp` has no system dependency). If
+it's missing, video thumbnail generation just fails gracefully
+(`thumbnail_status = 'failed'`, falls back to the plain file icon) —
+nothing breaks, videos just won't get real thumbnails until it's
+installed:
 
 ```
-echo "PUBLIC_APP_URL=https://drive.apexstudio.dev" | sudo -u drive-clone -H tee -a /opt/drive-clone/.env
+apt-get update && apt-get install -y ffmpeg
 ```
+
+`PUBLIC_APP_URL` was the other action item from the previous update —
+if that's already in `.env` (it should be, since sharing has been
+confirmed working live), there's nothing further to do for it.
 
 ## Feature status
 
@@ -74,7 +80,8 @@ a real running app boot, not just unit tests), and pushed to `main`.
 | Grid/list view toggle + right-click context menu | done | Phase 3 |
 | Upload panel polish | done | Phase 4 |
 | Restyled login/accept-invite/admin-invites pages | done | Phase 5 |
-| In-app photo/video preview | done | pure frontend, no backend/DB change |
+| In-app photo/video preview + next/prev navigation | done | |
+| Real server-generated thumbnails (images + video) | done | new system dependency: ffmpeg |
 
 Nothing is currently in progress. The visual redesign (Phases 1-5) is
 complete.

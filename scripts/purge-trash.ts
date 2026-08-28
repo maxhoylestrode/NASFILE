@@ -21,8 +21,13 @@ import { logger } from '../src/logger';
 async function main() {
   const cutoff = new Date(Date.now() - config.TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000);
 
-  const { rows: files } = await pool.query<{ id: string; storage_key: string | null; name: string }>(
-    `SELECT id, storage_key, name FROM files WHERE deleted_at IS NOT NULL AND deleted_at < $1`,
+  const { rows: files } = await pool.query<{
+    id: string;
+    storage_key: string | null;
+    thumbnail_key: string | null;
+    name: string;
+  }>(
+    `SELECT id, storage_key, thumbnail_key, name FROM files WHERE deleted_at IS NOT NULL AND deleted_at < $1`,
     [cutoff],
   );
   logger.info({ count: files.length, cutoff }, 'Purging trashed files past retention');
@@ -30,6 +35,11 @@ async function main() {
     if (file.storage_key) {
       await deleteObject(file.storage_key).catch((err) => {
         logger.warn({ fileId: file.id, err: err instanceof Error ? err.message : err }, 'Failed to delete MinIO object, deleting row anyway');
+      });
+    }
+    if (file.thumbnail_key) {
+      await deleteObject(file.thumbnail_key).catch((err) => {
+        logger.warn({ fileId: file.id, err: err instanceof Error ? err.message : err }, 'Failed to delete thumbnail object, deleting row anyway');
       });
     }
     await pool.query('DELETE FROM files WHERE id = $1', [file.id]);

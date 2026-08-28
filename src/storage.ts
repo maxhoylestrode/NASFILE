@@ -10,6 +10,7 @@ import {
   UploadPartCommand,
   GetObjectCommand,
   DeleteObjectCommand,
+  PutObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { config } from './config';
@@ -92,6 +93,10 @@ export function buildObjectKey(ownerId: string, fileId: string): string {
   return `${ownerId}/${fileId}`;
 }
 
+export function buildThumbnailKey(ownerId: string, fileId: string): string {
+  return `${ownerId}/thumbnails/${fileId}.jpg`;
+}
+
 export async function createMultipartUpload(key: string): Promise<string> {
   const result = await s3Internal.send(new CreateMultipartUploadCommand({ Bucket: BUCKET, Key: key }));
   if (!result.UploadId) throw new Error('MinIO did not return an UploadId');
@@ -150,6 +155,26 @@ export async function abortMultipartUpload(key: string, uploadId: string): Promi
 
 export async function deleteObject(key: string): Promise<void> {
   await s3Internal.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+}
+
+/** Fetches an object's full body into memory. Only used for thumbnail
+ * generation (source images/videos), which are read once per file, ever
+ * — not on the hot path of normal browsing/downloading. */
+export async function getObjectBuffer(key: string): Promise<Buffer> {
+  const result = await s3Internal.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
+  const body = result.Body;
+  if (!body) throw new Error(`Object ${key} has no body`);
+  const chunks: Buffer[] = [];
+  // @ts-expect-error -- Body is a Node.js Readable in this runtime (not the browser ReadableStream typing the SDK types export)
+  for await (const chunk of body) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
+/** Uploads a small object directly (not multipart) — used for generated thumbnails. */
+export async function putObject(key: string, body: Buffer, contentType: string): Promise<void> {
+  await s3Internal.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: body, ContentType: contentType }));
 }
 
 export async function presignDownload(

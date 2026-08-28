@@ -23,6 +23,8 @@ export interface FileRow {
   status: 'pending' | 'complete';
   upload_id: string | null;
   part_size_bytes: string | null;
+  thumbnail_status: 'none' | 'ready' | 'failed';
+  thumbnail_key: string | null;
   created_at: Date;
   updated_at: Date;
   deleted_at: Date | null;

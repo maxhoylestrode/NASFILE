@@ -41,7 +41,7 @@ export function DrivePage() {
   const currentId = path[path.length - 1].id;
   const [modal, setModal] = useState<ModalState>(null);
   const [contextTarget, setContextTarget] = useState<ContextTarget | null>(null);
-  const [preview, setPreview] = useState<{ file: DriveFile; kind: PreviewKind } | null>(null);
+  const [previewStart, setPreviewStart] = useState<DriveFile | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const { data, isLoading, error } = useQuery({
@@ -53,6 +53,13 @@ export function DrivePage() {
     queryClient.invalidateQueries({ queryKey: ['folder', currentId] });
     queryClient.invalidateQueries({ queryKey: ['storage'] });
   }, [queryClient, currentId]);
+
+  const mediaItems: { file: DriveFile; kind: PreviewKind }[] = (data?.files ?? [])
+    .map((file) => {
+      const kind = getPreviewKind(file.name);
+      return kind ? { file, kind } : null;
+    })
+    .filter((x): x is { file: DriveFile; kind: PreviewKind } => x !== null);
 
   const openFolder = (folder: Folder) => setPath((p) => [...p, { id: folder.id, name: folder.name }]);
   const navigateTo = (id: string) => setPath((p) => p.slice(0, p.findIndex((c) => c.id === id) + 1));
@@ -128,7 +135,7 @@ export function DrivePage() {
     } else {
       const previewKind = getPreviewKind(item.name);
       if (item.status === 'complete' && previewKind) {
-        items.push({ label: 'Preview', icon: Eye, onClick: () => setPreview({ file: item, kind: previewKind }) });
+        items.push({ label: 'Preview', icon: Eye, onClick: () => setPreviewStart(item) });
       }
       if (item.status === 'complete') {
         items.push({ label: 'Download', icon: Download, onClick: () => handleDownload(item) });
@@ -258,7 +265,7 @@ export function DrivePage() {
                         item={file}
                         view={view}
                         onDownload={() => handleDownload(file)}
-                        onPreview={previewKind ? () => setPreview({ file, kind: previewKind }) : undefined}
+                        onPreview={previewKind ? () => setPreviewStart(file) : undefined}
                         onRename={() => setModal({ type: 'rename-file', file })}
                         onMove={() => setModal({ type: 'move-file', file })}
                         onDelete={() => runAction(() => api.deleteFile(file.id))}
@@ -291,7 +298,16 @@ export function DrivePage() {
         />
       )}
 
-      {preview && <PreviewModal file={preview.file} kind={preview.kind} onClose={() => setPreview(null)} />}
+      {previewStart && (
+        <PreviewModal
+          items={mediaItems}
+          startIndex={Math.max(
+            0,
+            mediaItems.findIndex((m) => m.file.id === previewStart.id),
+          )}
+          onClose={() => setPreviewStart(null)}
+        />
+      )}
 
       {modal?.type === 'new-folder' && (
         <PromptModal

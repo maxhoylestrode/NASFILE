@@ -133,6 +133,10 @@ UI to serve.
 
 ## Setup
 
+**System dependency:** `ffmpeg` must be installed on the host (used only
+for video thumbnail frame extraction — see "Thumbnails" below). Not
+needed for anything else the app does.
+
 ```bash
 npm install
 cp .env.example .env   # fill in real secrets/connection info
@@ -379,7 +383,7 @@ for those types, and a plain `<a href>` fallback (flagged as
 non-embeddable) for anything else, like Word docs, that browsers won't
 render inline from a URL.
 
-### In-app photo/video preview
+### In-app photo/video preview + thumbnails
 
 Clicking an image or video (in the drive view, grid view, right-click
 menu, or Shared with me) opens a full-screen preview instead of
@@ -387,12 +391,54 @@ downloading — `frontend/src/components/PreviewModal.tsx` renders an
 `<img>` or `<video controls autoPlay>` using the same presigned URL a
 normal download uses (`Content-Disposition: attachment` doesn't stop a
 browser from loading it as an `<img>`/`<video>` subresource — that
-header only matters for top-level navigation). No backend changes.
-Everything else (PDF, audio, Word/Excel/etc.) still just downloads on
-click, unchanged. `frontend/src/lib/mediaType.ts` holds the single
-source of truth for which extensions get a native in-browser renderer —
-`embedCode.ts` imports from it too, instead of keeping its own copy of
-the same extension lists.
+header only matters for top-level navigation). Everything else (PDF,
+audio, Word/Excel/etc.) still just downloads on click, unchanged.
+`frontend/src/lib/mediaType.ts` holds the single source of truth for
+which extensions get a native in-browser renderer — `embedCode.ts`
+imports from it too, instead of keeping its own copy of the same
+extension lists.
+
+The preview modal also supports arrow-key/click navigation through every
+other image/video in the same list (current folder, or the current
+Shared-with-me view) — `PreviewModal` takes an ordered `items` array plus
+a `startIndex` rather than a single file, wraps around at either end, and
+just swaps which player renders (`<img>` vs `<video>`) as you move
+between an image and a video.
+
+**Thumbnails** (`GET /files/:id/thumbnail-url`, `src/lib/thumbnails.ts`)
+are real server-generated images, not client-side scaling — deliberately
+chosen for reliability: a phone-shot video (e.g. iPhone HEVC `.mov`)
+doesn't reliably decode in every browser, but a real `ffmpeg` subprocess
+decodes it once, server-side, regardless of what's viewing it afterward.
+Images go through `sharp` (bundles libvips, no system dependency beyond
+the npm package); video frames are grabbed via `ffmpeg -ss 1 ... -frames:v
+1` (falls back to `-ss 0` for anything shorter than a second) — **this is
+the one new system dependency this feature needs; `ffmpeg` must be
+installed on the host** (see Setup above).
+
+Generation is on-demand and cached, not a batch job: the first request
+for a given file's thumbnail downloads the source object once, generates
+a small JPEG (`sharp`/`ffmpeg`), uploads it to MinIO next to the
+original, and flips `files.thumbnail_status` to `'ready'` — every
+request after that just re-presigns the already-generated object
+(single-digit milliseconds vs. tens-to-low-hundreds of ms for the actual
+generation). This also means existing files uploaded before this feature
+shipped get a thumbnail the first time anyone views them, with no
+backfill migration needed. A generation failure (corrupt file, exotic
+codec) is caught and recorded as `thumbnail_status = 'failed'` rather
+than surfacing an error — the frontend (`FileThumbnail.tsx`) just falls
+back to the plain file-type icon. Same access rule as download —
+`getAccessibleFile` (owner or a valid share) — so a thumbnail is visible
+anywhere the file itself would be, verified by sharing a file with a
+guest account and confirming their thumbnail request is blocked before
+the share exists and works after.
+
+Migration `005_thumbnails.sql` adds two nullable/defaulted columns to
+`files` (`thumbnail_status`, `thumbnail_key`) — additive only, no
+backfill, existing rows just start at `'none'`. Thumbnail objects are
+cleaned up alongside the original on permanent delete (`DELETE
+/files/:id` second call) and by `npm run purge-trash`, same pattern as
+the original object.
 
 ### Exposing MinIO for direct browser upload/download
 

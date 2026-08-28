@@ -1,7 +1,7 @@
 import { Folder as FolderIcon, Download, Pencil, FolderInput, Trash2, Clock, Share2, MoreVertical } from 'lucide-react';
 import type { DriveFile, Folder } from '../api/types';
 import { formatBytes, formatDate } from '../lib/format';
-import { getFileIcon } from '../lib/fileIcons';
+import { FileThumbnail } from './FileThumbnail';
 import type { ViewMode } from '../lib/useViewMode';
 
 interface FolderRowProps {
@@ -38,7 +38,6 @@ type ItemRowProps = FolderRowProps | FileRowProps;
 export function ItemRow(props: ItemRowProps) {
   const isFolder = props.kind === 'folder';
   const isPendingFile = props.kind === 'file' && props.item.status === 'pending';
-  const FileIconComp = !isFolder ? getFileIcon(props.item.name) : null;
   const openHandler = isFolder
     ? () => props.onOpen(props.item.id)
     : props.kind === 'file'
@@ -58,13 +57,13 @@ export function ItemRow(props: ItemRowProps) {
         }}
       >
         <button className="flex w-full flex-col items-center gap-2" onClick={openHandler} disabled={isPendingFile}>
-          <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-slate-100 transition-colors duration-150 dark:bg-slate-700">
-            {isFolder ? (
+          {isFolder ? (
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-slate-100 transition-colors duration-150 dark:bg-slate-700">
               <FolderIcon className="h-8 w-8 text-indigo-500 dark:text-indigo-400" />
-            ) : (
-              FileIconComp && <FileIconComp.icon className={`h-8 w-8 ${FileIconComp.color}`} />
-            )}
-          </div>
+            </div>
+          ) : (
+            <FileThumbnail file={props.item} size="lg" />
+          )}
           <span className="line-clamp-2 w-full break-words text-xs text-slate-700 dark:text-slate-200">
             {props.item.name}
           </span>
@@ -101,7 +100,7 @@ export function ItemRow(props: ItemRowProps) {
         {isFolder ? (
           <FolderIcon className="h-5 w-5 shrink-0 text-indigo-500 dark:text-indigo-400" />
         ) : (
-          FileIconComp && <FileIconComp.icon className={`h-5 w-5 shrink-0 ${FileIconComp.color}`} />
+          <FileThumbnail file={props.item} size="sm" />
         )}
         <span className="min-w-0 flex-1 truncate text-sm text-slate-800 dark:text-slate-100">{props.item.name}</span>
         {isPendingFile && (

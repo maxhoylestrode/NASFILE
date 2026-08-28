@@ -2,6 +2,7 @@ import type {
   ApiErrorBody,
   CreateInviteResponse,
   DownloadUrlResponse,
+  ThumbnailUrlResponse,
   DriveFile,
   Folder,
   FolderContents,
@@ -153,6 +154,7 @@ export const api = {
     request<DriveFile>(`/files/uploads/${fileId}/complete`, { method: 'POST', body: { parts } }),
 
   getDownloadUrl: (fileId: string) => request<DownloadUrlResponse>(`/files/${fileId}/download`),
+  getThumbnailUrl: (fileId: string) => request<ThumbnailUrlResponse>(`/files/${fileId}/thumbnail-url`),
 
   getStorageUsage: () => request<StorageUsage>('/files/storage'),
 

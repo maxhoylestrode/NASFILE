@@ -11,6 +11,7 @@ import { BadRequestError, ConflictError, HttpError, NotFoundError } from '../mid
 import { getOwnedFile, getOwnedFolder, getAccessibleFile, isUniqueViolation, serializeFile, type FileRow } from '../lib/dbHelpers';
 import {
   buildObjectKey,
+  buildThumbnailKey,
   createMultipartUpload,
   presignUploadPart,
   completeMultipartUpload,
@@ -18,7 +19,11 @@ import {
   abortMultipartUpload,
   deleteObject,
   presignDownload,
+  getObjectBuffer,
+  putObject,
 } from '../storage';
+import { generateImageThumbnail, generateVideoThumbnail, withTempFile } from '../lib/thumbnails';
+import { logger } from '../logger';
 
 export const filesRouter = Router();
 filesRouter.use(requireAuth);
@@ -210,6 +215,84 @@ filesRouter.get(
   }),
 );
 
+// GET /files/:id/thumbnail-url — presigned URL for a small cached
+// thumbnail image (images and videos only). Generated on first request
+// per file, ever: the source object is fetched from MinIO once, resized
+// (sharp for images, a real ffmpeg subprocess for a video frame — not a
+// browser-side frame grab, so it works regardless of what codec the
+// original video used), the result is stashed in MinIO next to the
+// original, and the files row is updated so every later request just
+// re-presigns the already-generated object. Same access rule as
+// download (owner or a valid share) so a thumbnail is visible anywhere
+// the file itself would be.
+filesRouter.get(
+  '/:id/thumbnail-url',
+  validate(uuidParamSchema, 'params'),
+  asyncHandler(async (req, res) => {
+    const { id } = req.params as unknown as z.infer<typeof uuidParamSchema>;
+    const file = await getAccessibleFile(pool, id, req.user!.id);
+
+    if (file.status !== 'complete' || !file.storage_key) {
+      res.status(200).json({ url: null, status: 'unavailable' });
+      return;
+    }
+
+    const mime = file.mime_type ?? '';
+    const isImage = mime.startsWith('image/');
+    const isVideo = mime.startsWith('video/');
+    if (!isImage && !isVideo) {
+      res.status(200).json({ url: null, status: 'unsupported' });
+      return;
+    }
+
+    if (file.thumbnail_status === 'ready' && file.thumbnail_key) {
+      const url = await presignDownload(file.thumbnail_key, `${file.name}-thumb.jpg`, { disposition: 'inline' });
+      res.status(200).json({ url, status: 'ready' });
+      return;
+    }
+
+    if (file.thumbnail_status === 'failed') {
+      res.status(200).json({ url: null, status: 'failed' });
+      return;
+    }
+
+    // thumbnail_status === 'none' — generate it now, once. Any failure
+    // here (corrupt file, unsupported codec even for ffmpeg, etc.) is
+    // caught and recorded as 'failed' rather than surfacing a 500 —
+    // the frontend just falls back to the plain file-type icon.
+    try {
+      const sourceBuffer = await getObjectBuffer(file.storage_key);
+      const thumbBuffer = isImage
+        ? await generateImageThumbnail(sourceBuffer)
+        : await withTempFile(sourceBuffer, extFromMime(mime), (path) => generateVideoThumbnail(path));
+
+      const thumbKey = buildThumbnailKey(file.owner_id, file.id);
+      await putObject(thumbKey, thumbBuffer, 'image/jpeg');
+      await pool.query(`UPDATE files SET thumbnail_status = 'ready', thumbnail_key = $1 WHERE id = $2`, [
+        thumbKey,
+        file.id,
+      ]);
+
+      const url = await presignDownload(thumbKey, `${file.name}-thumb.jpg`, { disposition: 'inline' });
+      res.status(200).json({ url, status: 'ready' });
+    } catch (err) {
+      logger.warn(
+        { fileId: file.id, err: err instanceof Error ? err.message : err },
+        'Thumbnail generation failed',
+      );
+      await pool
+        .query(`UPDATE files SET thumbnail_status = 'failed' WHERE id = $1`, [file.id])
+        .catch(() => undefined);
+      res.status(200).json({ url: null, status: 'failed' });
+    }
+  }),
+);
+
+function extFromMime(mime: string): string {
+  const subtype = mime.split('/')[1]?.replace(/[^a-z0-9]/gi, '') || 'bin';
+  return `.${subtype}`;
+}
+
 // GET /files/storage — aggregate bytes used by the current user's
 // completed files. No quota/cap concept exists yet, so this is purely
 // informational (a real number, not a fake "X of Y GB" that implies a
@@ -301,6 +384,9 @@ filesRouter.delete(
 
     if (file.storage_key) {
       await deleteObject(file.storage_key);
+    }
+    if (file.thumbnail_key) {
+      await deleteObject(file.thumbnail_key).catch(() => undefined);
     }
     await pool.query('DELETE FROM files WHERE id = $1', [id]);
     res.status(204).send();
